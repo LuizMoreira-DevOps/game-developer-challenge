@@ -1,0 +1,35 @@
+import { expect, test } from "@playwright/test";
+
+import { defaultGameplayConfig } from "../../src/game/config/gameplayConfig";
+import {
+    type GameRenderer,
+    GameRuntime,
+} from "../../src/game/core/GameRuntime";
+import {
+    type GameSimulationSnapshot,
+    GameSimulation,
+} from "../../src/game/core/GameSimulation";
+
+class TestRenderer implements GameRenderer {
+    public snapshots: GameSimulationSnapshot[] = [];
+
+    public render(snapshot: GameSimulationSnapshot): void {
+        this.snapshots.push(snapshot);
+    }
+}
+
+test("updates the simulation and forwards its snapshot to the renderer", () => {
+    const simulation = new GameSimulation(defaultGameplayConfig);
+    const renderer = new TestRenderer();
+    const runtime = new GameRuntime(simulation, renderer);
+
+    runtime.start();
+    runtime.update(0.5);
+
+    expect(renderer.snapshots).toHaveLength(1);
+    expect(renderer.snapshots[0]).toEqual({
+        elapsedSeconds: 0.5,
+        isRunning: true,
+        isPaused: false,
+    });
+});
