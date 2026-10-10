@@ -25,10 +25,30 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v7
 
+            - name: Detect JavaScript/TypeScript sources
+              id: sources
+              shell: bash
+              run: |
+                  if find . -type f \( \
+                    -name "*.js" -o \
+                    -name "*.jsx" -o \
+                    -name "*.ts" -o \
+                    -name "*.tsx" -o \
+                    -name "*.mjs" -o \
+                    -name "*.cjs" \
+                  \) -not -path "./node_modules/*" | grep -q .; then
+                    echo "found=true" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "found=false" >> "$GITHUB_OUTPUT"
+                    echo "No JavaScript/TypeScript source files found. Skipping CodeQL analysis."
+                  fi
+
             - name: Initialize CodeQL
+              if: steps.sources.outputs.found == 'true'
               uses: github/codeql-action/init@v4
               with:
                   languages: javascript-typescript
 
             - name: Perform CodeQL Analysis
+              if: steps.sources.outputs.found == 'true'
               uses: github/codeql-action/analyze@v4
