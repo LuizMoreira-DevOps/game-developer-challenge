@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/compare/v0.2.0...v0.3.0) (2026-10-10)
+
+
+### Features
+
+* establish game runtime architecture ([#12](https://github.com/LuizMoreira-DevOps/game-developer-challenge/issues/12)) ([3db493a](https://github.com/LuizMoreira-DevOps/game-developer-challenge/commit/3db493aaac951cfb610b15fe8bd00f6ce0c7a3ed))
+
 ## [0.2.0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/compare/v0.1.0...v0.2.0) (2026-10-10)
 
 
