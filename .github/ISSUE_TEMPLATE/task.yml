@@ -1,7 +1,6 @@
 name: Task
 description: Plan a unit of work for Pirate Battle
-title: ""
-labels: []
+
 body:
     - type: textarea
       id: objective
