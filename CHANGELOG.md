@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/compare/v0.1.0...v0.2.0) (2026-10-10)
+
+
+### Features
+
+* bootstrap application and quality pipeline ([#9](https://github.com/LuizMoreira-DevOps/game-developer-challenge/issues/9)) ([45add55](https://github.com/LuizMoreira-DevOps/game-developer-challenge/commit/45add55d7429fea8eaf079dd275eddb481ade88e))
+
 ## 0.1.0 (2026-10-10)
 
 
