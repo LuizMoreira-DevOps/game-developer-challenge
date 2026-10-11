@@ -33,20 +33,26 @@ const islandTileUrls = [
 export async function createIslandVisual(): Promise<Container> {
     const container = new Container();
 
-    for (let row = 0; row < islandTileUrls.length; row += 1) {
-        for (let column = 0; column < islandTileUrls[row].length; column += 1) {
-            const texture = await Assets.load(islandTileUrls[row][column]);
+    const columns = islandTileUrls[0].length;
+    const urls = islandTileUrls.flat();
 
-            const sprite = new Sprite(texture);
+    // Load all island textures concurrently.
+    const textures = await Promise.all(urls.map((url) => Assets.load(url)));
 
-            sprite.x = column * TILE_SIZE;
-            sprite.y = row * TILE_SIZE;
+    // Preserve the original tile order and positions.
+    textures.forEach((texture, index) => {
+        const row = Math.floor(index / columns);
+        const column = index % columns;
 
-            container.addChild(sprite);
-        }
-    }
+        const sprite = new Sprite(texture);
 
-    const islandSize = TILE_SIZE * islandTileUrls.length;
+        sprite.x = column * TILE_SIZE;
+        sprite.y = row * TILE_SIZE;
+
+        container.addChild(sprite);
+    });
+
+    const islandSize = TILE_SIZE * columns;
 
     container.pivot.set(islandSize / 2, islandSize / 2);
 

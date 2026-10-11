@@ -78,3 +78,34 @@ test("clears pressed weapon keys when window loses focus", () => {
 
     keyboard.stop();
 });
+
+test("supports turning left, moving forward and firing simultaneously", () => {
+    const keyboard = new KeyboardInput();
+    const target = new FakeWindow();
+
+    keyboard.start(target as unknown as Window);
+
+    target.dispatchKey("keydown", "ArrowLeft");
+    target.dispatchKey("keydown", "ArrowUp");
+    target.dispatchKey("keydown", "Space");
+
+    expect(keyboard.getMovementInput()).toEqual({
+        forward: true,
+        turnLeft: true,
+        turnRight: false,
+    });
+
+    expect(keyboard.getWeaponInput()).toEqual({
+        fireFront: true,
+        fireLeftBroadside: false,
+        fireRightBroadside: false,
+    });
+
+    target.dispatchKey("keyup", "Space");
+
+    expect(keyboard.getMovementInput().forward).toBe(true);
+    expect(keyboard.getMovementInput().turnLeft).toBe(true);
+    expect(keyboard.getWeaponInput().fireFront).toBe(false);
+
+    keyboard.stop();
+});

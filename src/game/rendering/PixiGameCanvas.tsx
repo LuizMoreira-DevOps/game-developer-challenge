@@ -7,13 +7,16 @@ import {
     GameSimulation,
     type GameSimulationSnapshot,
 } from "../core/GameSimulation";
+import { CompositeGameInput } from "../input/CompositeGameInput";
 import { KeyboardInput } from "../input/KeyboardInput";
+import { TouchInput } from "../input/TouchInput";
+import { TouchControls } from "../ui/TouchControls";
 import { PixiGameRenderer } from "./PixiGameRenderer";
-
 import { createIslandVisual } from "./createIslandVisual";
 
-import enemyShipUrl from "../../../assets/png/default/ships/ship_3.png";
+import "../ui/gameplay-ui.css";
 
+import enemyShipUrl from "../../../assets/png/default/ships/ship_3.png";
 import playerShipUrl from "../../../assets/png/default/ships/ship_2.png";
 
 type HudState = {
@@ -38,6 +41,8 @@ function toHud(snapshot: GameSimulationSnapshot): HudState {
 
 export function PixiGameCanvas() {
     const containerRef = useRef<HTMLDivElement>(null);
+    const touchInputRef = useRef<TouchInput | null>(null);
+
     const [hud, setHud] = useState<HudState>({
         health: defaultGameplayConfig.playerMaxHealth,
         score: 0,
@@ -113,7 +118,6 @@ export function PixiGameCanvas() {
             app.stage.addChild(islandVisual);
 
             const projectileLayer = new Container();
-
             app.stage.addChild(projectileLayer);
 
             const playerTexture = await Assets.load(playerShipUrl);
@@ -123,7 +127,6 @@ export function PixiGameCanvas() {
             }
 
             const enemyLayer = new Container();
-
             app.stage.addChild(enemyLayer);
 
             const enemyTexture = await Assets.load(enemyShipUrl);
@@ -133,7 +136,6 @@ export function PixiGameCanvas() {
             }
 
             const playerSprite = new Sprite(playerTexture);
-
             playerSprite.anchor.set(0.5);
 
             app.stage.addChild(playerSprite);
@@ -150,10 +152,15 @@ export function PixiGameCanvas() {
             );
 
             const keyboard = new KeyboardInput();
+            const touch = new TouchInput();
+
+            const input = new CompositeGameInput([keyboard, touch]);
+
+            touchInputRef.current = touch;
 
             keyboard.start();
 
-            const runtime = new GameRuntime(simulation, renderer, keyboard);
+            const runtime = new GameRuntime(simulation, renderer, input);
 
             runtime.start();
 
@@ -179,7 +186,9 @@ export function PixiGameCanvas() {
             const pauseMatch = () => {
                 const snapshot = simulation.getSnapshot();
 
-                if (!snapshot.isRunning || snapshot.isPaused) return;
+                if (!snapshot.isRunning || snapshot.isPaused) {
+                    return;
+                }
 
                 runtime.pause();
                 keyboard.stop();
@@ -205,6 +214,7 @@ export function PixiGameCanvas() {
             const restartMatch = () => {
                 keyboard.stop();
                 renderer.reset();
+
                 runtime.start();
                 keyboard.start();
 
@@ -225,6 +235,7 @@ export function PixiGameCanvas() {
             };
 
             window.addEventListener("blur", pauseMatch);
+
             document.addEventListener(
                 "visibilitychange",
                 handleVisibilityChange,
@@ -232,6 +243,7 @@ export function PixiGameCanvas() {
 
             const update = () => {
                 runtime.update(app.ticker.deltaMS / 1000);
+
                 syncHud();
 
                 if (!simulation.getSnapshot().isRunning) {
@@ -263,19 +275,25 @@ export function PixiGameCanvas() {
             resizeArena();
 
             const resizeObserver = new ResizeObserver(resizeArena);
-
             resizeObserver.observe(target);
 
             cleanupRuntime = () => {
                 resizeObserver.disconnect();
                 app.ticker.remove(update);
+
                 keyboard.stop();
                 runtime.stop();
+
                 window.removeEventListener("blur", pauseMatch);
+
                 document.removeEventListener(
                     "visibilitychange",
                     handleVisibilityChange,
                 );
+
+                if (touchInputRef.current === touch) {
+                    touchInputRef.current = null;
+                }
 
                 controlsRef.current = null;
             };
@@ -283,11 +301,12 @@ export function PixiGameCanvas() {
             target.appendChild(app.canvas);
         }
 
-        void mount(container);
+        void mount(container).catch((error: unknown) => {
+            console.error("Failed to initialize Pirate Battle:", error);
+        });
 
         return () => {
             disposed = true;
-
             cleanupRuntime?.();
 
             if (initialized) {
@@ -295,21 +314,29 @@ export function PixiGameCanvas() {
             }
         };
     }, []);
+
+    const touchDisabled = !hud.isRunning || hud.isPaused;
+
     return (
-        <section aria-label="Combat">
-            <div aria-label="Combat statistics">
+        <section className="gameplay-shell" aria-label="Combat">
+            <div className="gameplay-hud" aria-label="Combat statistics">
                 <span>
                     Health:{" "}
-                    <output aria-label="Player health">{hud.health}</output>
+                    <output aria-label="Player health" aria-live="off">
+                        {hud.health}
+                    </output>
                 </span>
-                {" · "}
+
                 <span>
-                    Score: <output aria-label="Score">{hud.score}</output>
+                    Score:{" "}
+                    <output aria-label="Score" aria-live="off">
+                        {hud.score}
+                    </output>
                 </span>
-                {" · "}
+
                 <span>
                     Time:{" "}
-                    <output aria-label="Remaining time">
+                    <output aria-label="Remaining time" aria-live="off">
                         {hud.remainingSeconds}
                     </output>
                     s
@@ -320,7 +347,6 @@ export function PixiGameCanvas() {
                     aria-label="Match status"
                     aria-live="polite"
                 >
-                    {" · "}
                     {hud.isRunning
                         ? hud.isPaused
                             ? "Paused"
@@ -359,15 +385,20 @@ export function PixiGameCanvas() {
                     </button>
                 )}
             </div>
+
+            <p className="keyboard-hint" aria-label="Keyboard controls">
+                <strong>Keyboard:</strong> W / ↑ Forward · A / ← Rotate left · D
+                / → Rotate right · Space / F Front cannon · Q Left broadside · E
+                Right broadside
+            </p>
+
             <div
                 ref={containerRef}
+                className="gameplay-arena"
                 data-testid="game-canvas-container"
-                style={{
-                    width: "100%",
-                    height: "70vh",
-                    minHeight: "320px",
-                }}
             />
+
+            <TouchControls inputRef={touchInputRef} disabled={touchDisabled} />
         </section>
     );
 }
