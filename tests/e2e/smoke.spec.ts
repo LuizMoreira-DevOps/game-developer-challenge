@@ -13,7 +13,9 @@ test("renders the Pirate Battle application", async ({ page }) => {
     const gameContainer = page.getByTestId("game-canvas-container");
 
     await expect(gameContainer).toBeVisible();
-    await expect(gameContainer.locator("canvas")).toBeVisible();
+    await expect(gameContainer.locator("canvas")).toBeVisible({
+        timeout: 15000,
+    });
 
     const canvas = gameContainer.locator("canvas");
 

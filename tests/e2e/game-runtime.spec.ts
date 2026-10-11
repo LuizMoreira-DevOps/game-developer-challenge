@@ -31,6 +31,8 @@ class TestInput implements GameInput {
         };
     }
 
+    public clear(): void {}
+
     public getWeaponInput(): PlayerWeaponInput {
         return {
             fireFront: false,

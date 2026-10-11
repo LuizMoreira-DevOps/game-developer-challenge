@@ -14,6 +14,8 @@ import type { PlayerMovementInput, PlayerState } from "./PlayerState";
 import type { ProjectileState } from "./ProjectileState";
 import { updatePlayerMovement } from "./updatePlayerMovement";
 
+export type MatchEndReason = "time" | "destroyed" | null;
+
 export interface GameSimulationSnapshot {
     readonly elapsedSeconds: number;
     readonly isRunning: boolean;
@@ -23,6 +25,8 @@ export interface GameSimulationSnapshot {
     readonly projectiles: readonly Readonly<ProjectileState>[];
     readonly island: Readonly<IslandState>;
     readonly enemies: readonly Readonly<EnemyState>[];
+    readonly remainingSeconds: number;
+    readonly endReason: MatchEndReason;
 }
 
 export class GameSimulation {
@@ -56,10 +60,31 @@ export class GameSimulation {
 
     private readonly random: () => number;
 
+    private endReason: MatchEndReason = null;
+
     public constructor(
         config: GameplayConfig,
         random: () => number = Math.random,
     ) {
+        if (
+            !Number.isFinite(config.matchDurationSeconds) ||
+            config.matchDurationSeconds < 60 ||
+            config.matchDurationSeconds > 180
+        ) {
+            throw new RangeError(
+                "Match duration must be between 60 and 180 seconds.",
+            );
+        }
+
+        if (
+            !Number.isFinite(config.enemySpawnIntervalSeconds) ||
+            config.enemySpawnIntervalSeconds <= 0
+        ) {
+            throw new RangeError(
+                "Enemy spawn interval must be greater than zero.",
+            );
+        }
+
         this.config = config;
         this.random = random;
 
@@ -82,6 +107,7 @@ export class GameSimulation {
         this.isRunning = true;
         this.isPaused = false;
         this.score = 0;
+        this.endReason = null;
 
         // Reinicia os projéteis e as armas.
         this.projectiles = [];
@@ -107,12 +133,23 @@ export class GameSimulation {
             return;
         }
 
+        if (!Number.isFinite(deltaSeconds) || deltaSeconds < 0) {
+            throw new RangeError("Delta time must be finite and non-negative.");
+        }
+
+        const stepSeconds = Math.min(
+            deltaSeconds,
+            this.config.matchDurationSeconds - this.elapsedSeconds,
+        );
+
+        this.elapsedSeconds += stepSeconds;
+
         // 1. Atualiza a movimentação do jogador.
         updatePlayerMovement(
             this.player,
             movementInput,
             this.config,
-            deltaSeconds,
+            stepSeconds,
         );
 
         // Impede que o jogador atravesse a ilha.
@@ -133,7 +170,7 @@ export class GameSimulation {
         this.player.y = resolvedPlayerPosition.y;
 
         // 2. Atualiza armas e processa os disparos do jogador.
-        this.updateWeaponCooldowns(deltaSeconds);
+        this.updateWeaponCooldowns(stepSeconds);
         this.handleWeaponInput(weaponInput);
 
         // 3. Resolve os impactos dos projéteis.
@@ -143,7 +180,7 @@ export class GameSimulation {
             this.player,
             this.island,
             this.config,
-            deltaSeconds,
+            stepSeconds,
         );
 
         this.projectiles = combat.projectiles;
@@ -152,23 +189,17 @@ export class GameSimulation {
 
         // Encerra imediatamente se o jogador foi destruído.
         if (combat.playerDestroyed) {
-            this.stop();
+            this.stop("destroyed");
             return;
         }
 
-        // 4. Atualiza o tempo da partida.
-        this.elapsedSeconds = Math.min(
-            this.elapsedSeconds + deltaSeconds,
-            this.config.matchDurationSeconds,
-        );
-
         if (this.elapsedSeconds >= this.config.matchDurationSeconds) {
-            this.stop();
+            this.stop("time");
             return;
         }
 
         // 5. Gera novos inimigos.
-        this.enemySpawnTimerSeconds += deltaSeconds;
+        this.enemySpawnTimerSeconds += stepSeconds;
 
         while (
             this.enemySpawnTimerSeconds >= this.config.enemySpawnIntervalSeconds
@@ -200,7 +231,7 @@ export class GameSimulation {
             this.player,
             this.island,
             this.config,
-            deltaSeconds,
+            stepSeconds,
             this.nextProjectileId,
         );
 
@@ -215,7 +246,7 @@ export class GameSimulation {
         );
 
         if (this.player.health === 0) {
-            this.stop();
+            this.stop("destroyed");
             return;
         }
 
@@ -236,9 +267,10 @@ export class GameSimulation {
         }
     }
 
-    public stop(): void {
+    public stop(reason: MatchEndReason = null): void {
         this.isRunning = false;
         this.isPaused = false;
+        this.endReason = reason;
     }
 
     public getSnapshot(): GameSimulationSnapshot {
@@ -253,6 +285,11 @@ export class GameSimulation {
             })),
             island: { ...this.island },
             enemies: this.enemies.map((enemy) => ({ ...enemy })),
+            remainingSeconds: Math.max(
+                0,
+                this.config.matchDurationSeconds - this.elapsedSeconds,
+            ),
+            endReason: this.endReason,
         };
     }
 

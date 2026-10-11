@@ -22,6 +22,7 @@ export class GameRuntime {
     }
 
     public start(): void {
+        this.input.clear();
         this.simulation.start();
     }
 
@@ -36,14 +37,17 @@ export class GameRuntime {
     }
 
     public pause(): void {
+        this.input.clear();
         this.simulation.pause();
     }
 
     public resume(): void {
+        this.input.clear();
         this.simulation.resume();
     }
 
     public stop(): void {
+        this.input.clear();
         this.simulation.stop();
     }
 }

@@ -296,6 +296,8 @@ test("lethal chaser collision stops combat immediately", () => {
 
     const dead = simulation.getSnapshot();
 
+    expect(dead.endReason).toBe("destroyed");
+
     expect(dead.player.health).toBe(0);
     expect(dead.isRunning).toBe(false);
     expect(dead.score).toBe(0);
