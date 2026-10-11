@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Application, Assets, Graphics, Sprite } from "pixi.js";
+import { Application, Assets, Container, Graphics, Sprite } from "pixi.js";
 
 import { defaultGameplayConfig } from "../config/gameplayConfig";
 import { GameRuntime } from "../core/GameRuntime";
@@ -63,6 +63,10 @@ export function PixiGameCanvas() {
 
             app.stage.addChild(arena);
 
+            const projectileLayer = new Container();
+
+            app.stage.addChild(projectileLayer);
+
             const playerTexture = await Assets.load(playerShipUrl);
 
             if (disposed) {
@@ -77,7 +81,10 @@ export function PixiGameCanvas() {
 
             const simulation = new GameSimulation(defaultGameplayConfig);
 
-            const renderer = new PixiGameRenderer(playerSprite);
+            const renderer = new PixiGameRenderer(
+                playerSprite,
+                projectileLayer,
+            );
 
             const keyboard = new KeyboardInput();
 

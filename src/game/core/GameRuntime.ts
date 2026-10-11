@@ -28,7 +28,9 @@ export class GameRuntime {
     public update(deltaSeconds: number): void {
         const movementInput = this.input.getMovementInput();
 
-        this.simulation.update(deltaSeconds, movementInput);
+        const weaponInput = this.input.getWeaponInput();
+
+        this.simulation.update(deltaSeconds, movementInput, weaponInput);
 
         this.renderer.render(this.simulation.getSnapshot());
     }

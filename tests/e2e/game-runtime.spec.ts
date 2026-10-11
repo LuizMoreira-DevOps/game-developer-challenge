@@ -2,6 +2,8 @@ import { expect, test } from "@playwright/test";
 import type { GameInput } from "../../src/game/input/GameInput";
 import type { PlayerMovementInput } from "../../src/game/core/PlayerState";
 
+import type { PlayerWeaponInput } from "../../src/game/input/PlayerWeaponInput";
+
 import { defaultGameplayConfig } from "../../src/game/config/gameplayConfig";
 import {
     type GameRenderer,
@@ -26,6 +28,14 @@ class TestInput implements GameInput {
             forward: false,
             turnLeft: false,
             turnRight: false,
+        };
+    }
+
+    public getWeaponInput(): PlayerWeaponInput {
+        return {
+            fireFront: false,
+            fireLeftBroadside: false,
+            fireRightBroadside: false,
         };
     }
 }
