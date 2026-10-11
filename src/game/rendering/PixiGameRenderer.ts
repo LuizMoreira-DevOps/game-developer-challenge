@@ -11,16 +11,29 @@ export class PixiGameRenderer implements GameRenderer {
 
     private readonly projectileLayer: Container;
 
+    private readonly islandVisual: Container;
+
     private readonly projectileGraphics = new Map<number, Graphics>();
 
-    public constructor(playerSprite: Sprite, projectileLayer: Container) {
+    public constructor(
+        playerSprite: Sprite,
+        islandVisual: Container,
+        projectileLayer: Container,
+    ) {
         this.playerSprite = playerSprite;
+        this.islandVisual = islandVisual;
         this.projectileLayer = projectileLayer;
     }
 
     public render(snapshot: GameSimulationSnapshot): void {
+        this.renderIsland(snapshot);
         this.renderPlayer(snapshot);
         this.renderProjectiles(snapshot);
+    }
+
+    private renderIsland(snapshot: GameSimulationSnapshot): void {
+        this.islandVisual.x = snapshot.island.x;
+        this.islandVisual.y = snapshot.island.y;
     }
 
     private renderPlayer(snapshot: GameSimulationSnapshot): void {

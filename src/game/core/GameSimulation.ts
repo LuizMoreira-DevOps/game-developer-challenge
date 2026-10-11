@@ -10,12 +10,17 @@ import type { ProjectileState } from "./ProjectileState";
 import { updatePlayerMovement } from "./updatePlayerMovement";
 import { updateProjectiles } from "./updateProjectiles";
 
+import type { IslandState } from "./IslandState";
+
+import { resolveCircleOverlap } from "./collision/resolveCircleOverlap";
+
 export interface GameSimulationSnapshot {
     readonly elapsedSeconds: number;
     readonly isRunning: boolean;
     readonly isPaused: boolean;
     readonly player: Readonly<PlayerState>;
     readonly projectiles: readonly Readonly<ProjectileState>[];
+    readonly island: Readonly<IslandState>;
 }
 
 export class GameSimulation {
@@ -31,6 +36,8 @@ export class GameSimulation {
         rotation: 0,
     };
 
+    private readonly island: IslandState;
+
     private projectiles: ProjectileState[] = [];
 
     private nextProjectileId = 1;
@@ -41,6 +48,12 @@ export class GameSimulation {
 
     public constructor(config: GameplayConfig) {
         this.config = config;
+
+        this.island = {
+            x: config.islandX,
+            y: config.islandY,
+            collisionRadius: config.islandCollisionRadius,
+        };
     }
 
     public start(): void {
@@ -71,6 +84,22 @@ export class GameSimulation {
             this.config,
             deltaSeconds,
         );
+
+        const resolvedPlayerPosition = resolveCircleOverlap(
+            {
+                x: this.player.x,
+                y: this.player.y,
+                radius: this.config.playerCollisionRadius,
+            },
+            {
+                x: this.island.x,
+                y: this.island.y,
+                radius: this.island.collisionRadius,
+            },
+        );
+
+        this.player.x = resolvedPlayerPosition.x;
+        this.player.y = resolvedPlayerPosition.y;
 
         this.updateWeaponCooldowns(deltaSeconds);
 
@@ -116,6 +145,9 @@ export class GameSimulation {
             projectiles: this.projectiles.map((projectile) => ({
                 ...projectile,
             })),
+            island: {
+                ...this.island,
+            },
         };
     }
 
