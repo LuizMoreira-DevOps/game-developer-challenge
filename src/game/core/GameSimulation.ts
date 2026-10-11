@@ -1,26 +1,24 @@
 import type { GameplayConfig } from "../config/gameplayConfig";
 import type { PlayerWeaponInput } from "../input/PlayerWeaponInput";
 
+import { resolveCircleOverlap } from "./collision/resolveCircleOverlap";
+import { resolveCombat } from "./CombatSystem";
 import {
     createPlayerProjectiles,
     type PlayerWeaponType,
 } from "./createPlayerProjectiles";
+import { createEnemy, updateEnemies } from "./EnemySystem";
+import type { EnemyState, EnemyType } from "./EnemyState";
+import type { IslandState } from "./IslandState";
 import type { PlayerMovementInput, PlayerState } from "./PlayerState";
 import type { ProjectileState } from "./ProjectileState";
 import { updatePlayerMovement } from "./updatePlayerMovement";
-import { updateProjectiles } from "./updateProjectiles";
-
-import type { IslandState } from "./IslandState";
-
-import { createEnemy, updateEnemies } from "./EnemySystem";
-import type { EnemyState, EnemyType } from "./EnemyState";
-
-import { resolveCircleOverlap } from "./collision/resolveCircleOverlap";
 
 export interface GameSimulationSnapshot {
     readonly elapsedSeconds: number;
     readonly isRunning: boolean;
     readonly isPaused: boolean;
+    readonly score: number;
     readonly player: Readonly<PlayerState>;
     readonly projectiles: readonly Readonly<ProjectileState>[];
     readonly island: Readonly<IslandState>;
@@ -31,6 +29,7 @@ export class GameSimulation {
     private elapsedSeconds = 0;
     private isRunning = false;
     private isPaused = false;
+    private score = 0;
 
     private readonly config: GameplayConfig;
 
@@ -38,12 +37,12 @@ export class GameSimulation {
         x: 120,
         y: 120,
         rotation: 0,
+        health: 0,
     };
 
     private readonly island: IslandState;
 
     private projectiles: ProjectileState[] = [];
-
     private nextProjectileId = 1;
 
     private frontFireCooldownSeconds = 0;
@@ -55,8 +54,14 @@ export class GameSimulation {
     private enemySpawnTimerSeconds = 0;
     private nextEnemyType: EnemyType = "chaser";
 
-    public constructor(config: GameplayConfig) {
+    private readonly random: () => number;
+
+    public constructor(
+        config: GameplayConfig,
+        random: () => number = Math.random,
+    ) {
         this.config = config;
+        this.random = random;
 
         this.island = {
             x: config.islandX,
@@ -66,10 +71,19 @@ export class GameSimulation {
     }
 
     public start(): void {
+        // Restaura o estado inicial do jogador.
+        this.player.x = 120;
+        this.player.y = 120;
+        this.player.rotation = 0;
+        this.player.health = this.config.playerMaxHealth;
+
+        // Reinicia o estado da partida.
         this.elapsedSeconds = 0;
         this.isRunning = true;
         this.isPaused = false;
+        this.score = 0;
 
+        // Reinicia os projéteis e as armas.
         this.projectiles = [];
         this.nextProjectileId = 1;
 
@@ -77,6 +91,7 @@ export class GameSimulation {
         this.leftBroadsideCooldownSeconds = 0;
         this.rightBroadsideCooldownSeconds = 0;
 
+        // Reinicia os inimigos.
         this.enemies = [];
         this.nextEnemyId = 1;
         this.enemySpawnTimerSeconds = 0;
@@ -92,6 +107,7 @@ export class GameSimulation {
             return;
         }
 
+        // 1. Atualiza a movimentação do jogador.
         updatePlayerMovement(
             this.player,
             movementInput,
@@ -99,6 +115,7 @@ export class GameSimulation {
             deltaSeconds,
         );
 
+        // Impede que o jogador atravesse a ilha.
         const resolvedPlayerPosition = resolveCircleOverlap(
             {
                 x: this.player.x,
@@ -115,12 +132,31 @@ export class GameSimulation {
         this.player.x = resolvedPlayerPosition.x;
         this.player.y = resolvedPlayerPosition.y;
 
+        // 2. Atualiza armas e processa os disparos do jogador.
         this.updateWeaponCooldowns(deltaSeconds);
-
-        this.projectiles = updateProjectiles(this.projectiles, deltaSeconds);
-
         this.handleWeaponInput(weaponInput);
 
+        // 3. Resolve os impactos dos projéteis.
+        const combat = resolveCombat(
+            this.projectiles,
+            this.enemies,
+            this.player,
+            this.island,
+            this.config,
+            deltaSeconds,
+        );
+
+        this.projectiles = combat.projectiles;
+        this.enemies = combat.enemies;
+        this.score += combat.kills;
+
+        // Encerra imediatamente se o jogador foi destruído.
+        if (combat.playerDestroyed) {
+            this.stop();
+            return;
+        }
+
+        // 4. Atualiza o tempo da partida.
         this.elapsedSeconds = Math.min(
             this.elapsedSeconds + deltaSeconds,
             this.config.matchDurationSeconds,
@@ -128,8 +164,10 @@ export class GameSimulation {
 
         if (this.elapsedSeconds >= this.config.matchDurationSeconds) {
             this.stop();
+            return;
         }
 
+        // 5. Gera novos inimigos.
         this.enemySpawnTimerSeconds += deltaSeconds;
 
         while (
@@ -144,6 +182,7 @@ export class GameSimulation {
                 this.player,
                 this.island,
                 this.config,
+                this.random,
             );
 
             if (enemy) {
@@ -155,6 +194,7 @@ export class GameSimulation {
             }
         }
 
+        // 6. Movimenta os inimigos sobreviventes e processa seus ataques.
         const enemyUpdate = updateEnemies(
             this.enemies,
             this.player,
@@ -165,6 +205,21 @@ export class GameSimulation {
         );
 
         this.enemies = enemyUpdate.enemies;
+
+        // 7. Aplica o dano das colisões dos Chasers.
+        this.player.health = Math.max(
+            0,
+            this.player.health -
+                enemyUpdate.chaserCollisions *
+                    this.config.chaserCollisionDamage,
+        );
+
+        if (this.player.health === 0) {
+            this.stop();
+            return;
+        }
+
+        // 8. Adiciona os projéteis inimigos para o próximo frame.
         this.projectiles.push(...enemyUpdate.projectiles);
         this.nextProjectileId += enemyUpdate.projectiles.length;
     }
@@ -191,15 +246,12 @@ export class GameSimulation {
             elapsedSeconds: this.elapsedSeconds,
             isRunning: this.isRunning,
             isPaused: this.isPaused,
-            player: {
-                ...this.player,
-            },
+            score: this.score,
+            player: { ...this.player },
             projectiles: this.projectiles.map((projectile) => ({
                 ...projectile,
             })),
-            island: {
-                ...this.island,
-            },
+            island: { ...this.island },
             enemies: this.enemies.map((enemy) => ({ ...enemy })),
         };
     }
@@ -259,7 +311,6 @@ export class GameSimulation {
         );
 
         this.nextProjectileId += projectiles.length;
-
         this.projectiles.push(...projectiles);
     }
 }

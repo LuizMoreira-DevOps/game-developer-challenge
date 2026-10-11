@@ -8,6 +8,7 @@ import type { ProjectileState } from "./ProjectileState";
 export interface EnemyUpdateResult {
     enemies: EnemyState[];
     projectiles: ProjectileState[];
+    chaserCollisions: number;
 }
 
 const TWO_PI = Math.PI * 2;
@@ -89,6 +90,10 @@ export function createEnemy(
             x,
             y,
             rotation: Math.atan2(player.x - x, -(player.y - y)),
+            health:
+                type === "chaser"
+                    ? config.chaserMaxHealth
+                    : config.shooterMaxHealth,
             attackCooldownSeconds: 0,
         };
     }
@@ -106,8 +111,21 @@ export function updateEnemies(
 ): EnemyUpdateResult {
     const survivingEnemies: EnemyState[] = [];
     const projectiles: ProjectileState[] = [];
+    let chaserCollisions = 0;
 
     for (const enemy of enemies) {
+        if (enemy.health <= 0) {
+            continue;
+        }
+
+        const remainingPlayerHealth =
+            player.health - chaserCollisions * config.chaserCollisionDamage;
+
+        if (remainingPlayerHealth <= 0) {
+            survivingEnemies.push(enemy);
+            continue;
+        }
+
         const dx = player.x - enemy.x;
         const dy = player.y - enemy.y;
         const distance = Math.hypot(dx, dy);
@@ -190,6 +208,7 @@ export function updateEnemies(
             enemy.type === "chaser" &&
             playerDistance <= radius + config.playerCollisionRadius
         ) {
+            chaserCollisions++;
             continue;
         }
 
@@ -209,7 +228,7 @@ export function updateEnemies(
                     y: enemy.y,
                     rotation: targetRotation,
                     speed: config.projectileSpeed,
-                    damage: config.projectileDamage,
+                    damage: config.enemyProjectileDamage,
                     remainingLifetimeSeconds: config.projectileLifetimeSeconds,
                     owner: "enemy",
                 });
@@ -219,6 +238,14 @@ export function updateEnemies(
         }
 
         survivingEnemies.push(enemy);
+    }
+
+    if (player.health - chaserCollisions * config.chaserCollisionDamage <= 0) {
+        return {
+            enemies: survivingEnemies,
+            projectiles,
+            chaserCollisions,
+        };
     }
 
     for (let i = 0; i < survivingEnemies.length; i++) {
@@ -279,5 +306,6 @@ export function updateEnemies(
     return {
         enemies: survivingEnemies,
         projectiles,
+        chaserCollisions,
     };
 }

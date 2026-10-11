@@ -6,5 +6,6 @@ export interface EnemyState {
     x: number;
     y: number;
     rotation: number;
+    health: number;
     attackCooldownSeconds: number;
 }
