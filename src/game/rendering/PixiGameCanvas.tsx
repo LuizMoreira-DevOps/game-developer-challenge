@@ -230,29 +230,11 @@ export function PixiGameCanvas() {
                 handleVisibilityChange,
             );
 
-            let previousHealth: number = defaultGameplayConfig.playerMaxHealth;
-            let previousScore: number = 0;
-
             const update = () => {
                 runtime.update(app.ticker.deltaMS / 1000);
-
                 syncHud();
 
                 if (!simulation.getSnapshot().isRunning) {
-                    keyboard.stop();
-                }
-
-                const snapshot = simulation.getSnapshot();
-
-                const healthChanged = snapshot.player.health !== previousHealth;
-                const scoreChanged = snapshot.score !== previousScore;
-
-                if (healthChanged || scoreChanged) {
-                    previousHealth = snapshot.player.health;
-                    previousScore = snapshot.score;
-                }
-
-                if (!snapshot.isRunning) {
                     keyboard.stop();
                 }
             };

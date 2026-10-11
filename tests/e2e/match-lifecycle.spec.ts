@@ -184,3 +184,29 @@ test("restart restores a clean match", () => {
     expect(restarted.enemies).toHaveLength(0);
     expect(restarted.projectiles).toHaveLength(0);
 });
+
+test("caps gameplay updates at the remaining match time", () => {
+    const simulation = new GameSimulation(config);
+
+    simulation.start();
+    simulation.update(59.9, movement, weapons);
+
+    const before = simulation.getSnapshot().player;
+
+    simulation.update(1, { ...movement, forward: true }, weapons);
+
+    const after = simulation.getSnapshot();
+
+    const displacement = Math.hypot(
+        after.player.x - before.x,
+        after.player.y - before.y,
+    );
+
+    expect(displacement).toBeLessThanOrEqual(
+        config.playerMoveSpeed * 0.1 + 0.001,
+    );
+
+    expect(after.remainingSeconds).toBe(0);
+    expect(after.endReason).toBe("time");
+    expect(after.isRunning).toBe(false);
+});

@@ -37,6 +37,7 @@ export class GameRuntime {
     }
 
     public pause(): void {
+        this.input.clear();
         this.simulation.pause();
     }
 

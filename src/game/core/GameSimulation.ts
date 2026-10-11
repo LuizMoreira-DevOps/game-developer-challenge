@@ -149,7 +149,7 @@ export class GameSimulation {
             this.player,
             movementInput,
             this.config,
-            deltaSeconds,
+            stepSeconds,
         );
 
         // Impede que o jogador atravesse a ilha.
@@ -170,7 +170,7 @@ export class GameSimulation {
         this.player.y = resolvedPlayerPosition.y;
 
         // 2. Atualiza armas e processa os disparos do jogador.
-        this.updateWeaponCooldowns(deltaSeconds);
+        this.updateWeaponCooldowns(stepSeconds);
         this.handleWeaponInput(weaponInput);
 
         // 3. Resolve os impactos dos projéteis.
@@ -180,7 +180,7 @@ export class GameSimulation {
             this.player,
             this.island,
             this.config,
-            deltaSeconds,
+            stepSeconds,
         );
 
         this.projectiles = combat.projectiles;
@@ -199,7 +199,7 @@ export class GameSimulation {
         }
 
         // 5. Gera novos inimigos.
-        this.enemySpawnTimerSeconds += deltaSeconds;
+        this.enemySpawnTimerSeconds += stepSeconds;
 
         while (
             this.enemySpawnTimerSeconds >= this.config.enemySpawnIntervalSeconds
@@ -231,7 +231,7 @@ export class GameSimulation {
             this.player,
             this.island,
             this.config,
-            deltaSeconds,
+            stepSeconds,
             this.nextProjectileId,
         );
 
