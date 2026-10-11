@@ -34,7 +34,7 @@ export class KeyboardInput implements GameInput {
     };
 
     private readonly handleBlur = (): void => {
-        this.pressedKeys.clear();
+        this.clear();
     };
 
     public start(target: Window = window): void {
@@ -63,6 +63,10 @@ export class KeyboardInput implements GameInput {
         this.target.removeEventListener("blur", this.handleBlur);
 
         this.target = null;
+        this.clear();
+    }
+
+    public clear(): void {
         this.pressedKeys.clear();
     }
 

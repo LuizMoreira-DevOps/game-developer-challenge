@@ -308,4 +308,40 @@ export class PixiGameRenderer implements GameRenderer {
             }
         }
     }
+
+    public reset(): void {
+        this.previousPlayerHealth = null;
+        this.playerFlashUntil = 0;
+
+        this.playerSprite.tint = 0xffffff;
+        this.playerSprite.alpha = 1;
+        this.playerHealthBar.clear();
+
+        for (const graphic of this.projectileGraphics.values()) {
+            this.projectileLayer.removeChild(graphic);
+            graphic.destroy();
+        }
+        this.projectileGraphics.clear();
+
+        for (const sprite of this.enemySprites.values()) {
+            this.enemyLayer.removeChild(sprite);
+            sprite.destroy();
+        }
+        this.enemySprites.clear();
+
+        for (const bar of this.enemyHealthBars.values()) {
+            this.enemyLayer.removeChild(bar);
+            bar.destroy();
+        }
+        this.enemyHealthBars.clear();
+
+        for (const explosion of this.explosions) {
+            this.enemyLayer.removeChild(explosion.graphic);
+            explosion.graphic.destroy();
+        }
+        this.explosions.length = 0;
+
+        this.previousEnemyHealth.clear();
+        this.enemyFlashUntil.clear();
+    }
 }

@@ -3,7 +3,10 @@ import { Application, Assets, Container, Graphics, Sprite } from "pixi.js";
 
 import { defaultGameplayConfig } from "../config/gameplayConfig";
 import { GameRuntime } from "../core/GameRuntime";
-import { GameSimulation } from "../core/GameSimulation";
+import {
+    GameSimulation,
+    type GameSimulationSnapshot,
+} from "../core/GameSimulation";
 import { KeyboardInput } from "../input/KeyboardInput";
 import { PixiGameRenderer } from "./PixiGameRenderer";
 
@@ -13,12 +16,42 @@ import enemyShipUrl from "../../../assets/png/default/ships/ship_3.png";
 
 import playerShipUrl from "../../../assets/png/default/ships/ship_2.png";
 
+type HudState = {
+    health: number;
+    score: number;
+    remainingSeconds: number;
+    isRunning: boolean;
+    isPaused: boolean;
+    endReason: "time" | "destroyed" | null;
+};
+
+function toHud(snapshot: GameSimulationSnapshot): HudState {
+    return {
+        health: snapshot.player.health,
+        score: snapshot.score,
+        remainingSeconds: Math.ceil(snapshot.remainingSeconds),
+        isRunning: snapshot.isRunning,
+        isPaused: snapshot.isPaused,
+        endReason: snapshot.endReason,
+    };
+}
+
 export function PixiGameCanvas() {
     const containerRef = useRef<HTMLDivElement>(null);
-    const [hud, setHud] = useState<{ health: number; score: number }>({
+    const [hud, setHud] = useState<HudState>({
         health: defaultGameplayConfig.playerMaxHealth,
         score: 0,
+        remainingSeconds: defaultGameplayConfig.matchDurationSeconds,
+        isRunning: false,
+        isPaused: false,
+        endReason: null,
     });
+
+    const controlsRef = useRef<{
+        pause: () => void;
+        resume: () => void;
+        restart: () => void;
+    } | null>(null);
 
     useEffect(() => {
         const container = containerRef.current;
@@ -124,11 +157,90 @@ export function PixiGameCanvas() {
 
             runtime.start();
 
+            let previousHud = toHud(simulation.getSnapshot());
+            setHud(previousHud);
+
+            const syncHud = () => {
+                const next = toHud(simulation.getSnapshot());
+
+                if (
+                    next.health !== previousHud.health ||
+                    next.score !== previousHud.score ||
+                    next.remainingSeconds !== previousHud.remainingSeconds ||
+                    next.isRunning !== previousHud.isRunning ||
+                    next.isPaused !== previousHud.isPaused ||
+                    next.endReason !== previousHud.endReason
+                ) {
+                    previousHud = next;
+                    setHud(next);
+                }
+            };
+
+            const pauseMatch = () => {
+                const snapshot = simulation.getSnapshot();
+
+                if (!snapshot.isRunning || snapshot.isPaused) return;
+
+                runtime.pause();
+                keyboard.stop();
+                syncHud();
+            };
+
+            const resumeMatch = () => {
+                const snapshot = simulation.getSnapshot();
+
+                if (
+                    !snapshot.isRunning ||
+                    !snapshot.isPaused ||
+                    document.hidden
+                ) {
+                    return;
+                }
+
+                runtime.resume();
+                keyboard.start();
+                syncHud();
+            };
+
+            const restartMatch = () => {
+                keyboard.stop();
+                renderer.reset();
+                runtime.start();
+                keyboard.start();
+
+                renderer.render(simulation.getSnapshot());
+                syncHud();
+            };
+
+            controlsRef.current = {
+                pause: pauseMatch,
+                resume: resumeMatch,
+                restart: restartMatch,
+            };
+
+            const handleVisibilityChange = () => {
+                if (document.hidden) {
+                    pauseMatch();
+                }
+            };
+
+            window.addEventListener("blur", pauseMatch);
+            document.addEventListener(
+                "visibilitychange",
+                handleVisibilityChange,
+            );
+
             let previousHealth: number = defaultGameplayConfig.playerMaxHealth;
             let previousScore: number = 0;
 
             const update = () => {
                 runtime.update(app.ticker.deltaMS / 1000);
+
+                syncHud();
+
+                if (!simulation.getSnapshot().isRunning) {
+                    keyboard.stop();
+                }
 
                 const snapshot = simulation.getSnapshot();
 
@@ -138,11 +250,6 @@ export function PixiGameCanvas() {
                 if (healthChanged || scoreChanged) {
                     previousHealth = snapshot.player.health;
                     previousScore = snapshot.score;
-
-                    setHud({
-                        health: previousHealth,
-                        score: previousScore,
-                    });
                 }
 
                 if (!snapshot.isRunning) {
@@ -182,6 +289,13 @@ export function PixiGameCanvas() {
                 app.ticker.remove(update);
                 keyboard.stop();
                 runtime.stop();
+                window.removeEventListener("blur", pauseMatch);
+                document.removeEventListener(
+                    "visibilitychange",
+                    handleVisibilityChange,
+                );
+
+                controlsRef.current = null;
             };
 
             target.appendChild(app.canvas);
@@ -210,6 +324,58 @@ export function PixiGameCanvas() {
                 <span>
                     Score: <output aria-label="Score">{hud.score}</output>
                 </span>
+                {" · "}
+                <span>
+                    Time:{" "}
+                    <output aria-label="Remaining time">
+                        {hud.remainingSeconds}
+                    </output>
+                    s
+                </span>
+
+                <span
+                    role="status"
+                    aria-label="Match status"
+                    aria-live="polite"
+                >
+                    {" · "}
+                    {hud.isRunning
+                        ? hud.isPaused
+                            ? "Paused"
+                            : "Playing"
+                        : hud.endReason === "time"
+                          ? "Time's up"
+                          : hud.endReason === "destroyed"
+                            ? "Ship destroyed"
+                            : "Ready"}
+                </span>
+
+                {hud.isRunning && !hud.isPaused && (
+                    <button
+                        type="button"
+                        onClick={() => controlsRef.current?.pause()}
+                    >
+                        Pause
+                    </button>
+                )}
+
+                {hud.isRunning && hud.isPaused && (
+                    <button
+                        type="button"
+                        onClick={() => controlsRef.current?.resume()}
+                    >
+                        Resume
+                    </button>
+                )}
+
+                {!hud.isRunning && hud.endReason !== null && (
+                    <button
+                        type="button"
+                        onClick={() => controlsRef.current?.restart()}
+                    >
+                        Play Again
+                    </button>
+                )}
             </div>
             <div
                 ref={containerRef}
