@@ -5,6 +5,13 @@ async function ensureMatchPlaying(page: Page): Promise<void> {
         waitUntil: "domcontentloaded",
     });
 
+    await page
+        .getByRole("button", {
+            name: "Play",
+            exact: true,
+        })
+        .click();
+
     await page.bringToFront();
 
     await expect(

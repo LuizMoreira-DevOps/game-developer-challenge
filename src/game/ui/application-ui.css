@@ -1,0 +1,77 @@
+.application-main {
+    width: min(100%, 1280px);
+    min-width: 0;
+    margin: 0 auto;
+    padding: 16px;
+    box-sizing: border-box;
+}
+
+.application-main > h1 {
+    margin-top: 0;
+}
+
+.app-panel {
+    width: min(100%, 680px);
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.app-navigation,
+.app-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-block: 16px;
+}
+
+.app-navigation button,
+.app-actions button,
+.app-panel > button,
+.app-last-result button {
+    min-height: 44px;
+    padding: 8px 16px;
+    font: inherit;
+    cursor: pointer;
+}
+
+.options-form {
+    display: grid;
+    gap: 12px;
+    max-width: 440px;
+}
+
+.options-form input {
+    width: 100%;
+    max-width: 280px;
+    min-height: 42px;
+    padding: 8px;
+    box-sizing: border-box;
+    font: inherit;
+}
+
+.app-instructions,
+.app-last-result {
+    margin-top: 18px;
+    line-height: 1.6;
+}
+
+.application-main button:focus-visible,
+.application-main input:focus-visible {
+    outline: 3px solid #facc15;
+    outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+    .application-main {
+        padding: 10px;
+    }
+
+    .app-navigation {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .app-navigation button {
+        min-width: 0;
+    }
+}

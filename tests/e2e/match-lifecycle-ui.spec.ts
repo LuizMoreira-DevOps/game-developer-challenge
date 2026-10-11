@@ -1,6 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
 
 async function ensureMatchPlaying(page: Page): Promise<void> {
+    await page
+        .getByRole("button", {
+            name: "Play",
+            exact: true,
+        })
+        .click();
+
     await page.bringToFront();
 
     await expect(

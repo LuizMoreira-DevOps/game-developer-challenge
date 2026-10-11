@@ -10,6 +10,21 @@ test("renders the Pirate Battle application", async ({ page }) => {
         }),
     ).toBeVisible();
 
+    await expect(
+        page.getByRole("heading", { name: "Main Menu" }),
+    ).toBeVisible();
+
+    await page
+        .getByRole("button", {
+            name: "Play",
+            exact: true,
+        })
+        .click();
+
+    await expect(
+        page.getByRole("status", { name: "Match status" }),
+    ).toContainText(/Playing|Paused/);
+
     const gameContainer = page.getByTestId("game-canvas-container");
 
     await expect(gameContainer).toBeVisible();

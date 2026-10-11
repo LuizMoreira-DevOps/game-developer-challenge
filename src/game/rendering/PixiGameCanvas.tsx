@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Application, Assets, Container, Graphics, Sprite } from "pixi.js";
 
-import { defaultGameplayConfig } from "../config/gameplayConfig";
+import type { GameplayConfig } from "../config/gameplayConfig";
 import { GameRuntime } from "../core/GameRuntime";
 import {
     GameSimulation,
@@ -18,6 +18,12 @@ import "../ui/gameplay-ui.css";
 
 import enemyShipUrl from "../../../assets/png/default/ships/ship_3.png";
 import playerShipUrl from "../../../assets/png/default/ships/ship_2.png";
+
+interface PixiGameCanvasProps {
+    config: Readonly<GameplayConfig>;
+    onComplete: (snapshot: GameSimulationSnapshot) => void;
+    onExit: () => void;
+}
 
 type HudState = {
     health: number;
@@ -39,14 +45,19 @@ function toHud(snapshot: GameSimulationSnapshot): HudState {
     };
 }
 
-export function PixiGameCanvas() {
+export function PixiGameCanvas({
+    config,
+    onComplete,
+    onExit,
+}: PixiGameCanvasProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const touchInputRef = useRef<TouchInput | null>(null);
+    const onCompleteRef = useRef(onComplete);
 
     const [hud, setHud] = useState<HudState>({
-        health: defaultGameplayConfig.playerMaxHealth,
+        health: config.playerMaxHealth,
         score: 0,
-        remainingSeconds: defaultGameplayConfig.matchDurationSeconds,
+        remainingSeconds: config.matchDurationSeconds,
         isRunning: false,
         isPaused: false,
         endReason: null,
@@ -55,8 +66,11 @@ export function PixiGameCanvas() {
     const controlsRef = useRef<{
         pause: () => void;
         resume: () => void;
-        restart: () => void;
     } | null>(null);
+
+    useEffect(() => {
+        onCompleteRef.current = onComplete;
+    }, [onComplete]);
 
     useEffect(() => {
         const container = containerRef.current;
@@ -70,6 +84,7 @@ export function PixiGameCanvas() {
         let disposed = false;
         let initialized = false;
         let destroyed = false;
+        let completionNotified = false;
         let cleanupRuntime: (() => void) | undefined;
 
         function destroyApplication() {
@@ -99,12 +114,7 @@ export function PixiGameCanvas() {
             }
 
             const arena = new Graphics()
-                .rect(
-                    0,
-                    0,
-                    defaultGameplayConfig.arenaWidth,
-                    defaultGameplayConfig.arenaHeight,
-                )
+                .rect(0, 0, config.arenaWidth, config.arenaHeight)
                 .fill("#0b3d5c");
 
             app.stage.addChild(arena);
@@ -136,11 +146,11 @@ export function PixiGameCanvas() {
             }
 
             const playerSprite = new Sprite(playerTexture);
-            playerSprite.anchor.set(0.5);
 
+            playerSprite.anchor.set(0.5);
             app.stage.addChild(playerSprite);
 
-            const simulation = new GameSimulation(defaultGameplayConfig);
+            const simulation = new GameSimulation(config);
 
             const renderer = new PixiGameRenderer(
                 playerSprite,
@@ -148,7 +158,7 @@ export function PixiGameCanvas() {
                 projectileLayer,
                 enemyLayer,
                 enemyTexture,
-                defaultGameplayConfig,
+                config,
             );
 
             const keyboard = new KeyboardInput();
@@ -165,10 +175,11 @@ export function PixiGameCanvas() {
             runtime.start();
 
             let previousHud = toHud(simulation.getSnapshot());
+
             setHud(previousHud);
 
-            const syncHud = () => {
-                const next = toHud(simulation.getSnapshot());
+            const syncHud = (snapshot: GameSimulationSnapshot) => {
+                const next = toHud(snapshot);
 
                 if (
                     next.health !== previousHud.health ||
@@ -192,7 +203,7 @@ export function PixiGameCanvas() {
 
                 runtime.pause();
                 keyboard.stop();
-                syncHud();
+                syncHud(simulation.getSnapshot());
             };
 
             const resumeMatch = () => {
@@ -208,24 +219,12 @@ export function PixiGameCanvas() {
 
                 runtime.resume();
                 keyboard.start();
-                syncHud();
-            };
-
-            const restartMatch = () => {
-                keyboard.stop();
-                renderer.reset();
-
-                runtime.start();
-                keyboard.start();
-
-                renderer.render(simulation.getSnapshot());
-                syncHud();
+                syncHud(simulation.getSnapshot());
             };
 
             controlsRef.current = {
                 pause: pauseMatch,
                 resume: resumeMatch,
-                restart: restartMatch,
             };
 
             const handleVisibilityChange = () => {
@@ -244,10 +243,17 @@ export function PixiGameCanvas() {
             const update = () => {
                 runtime.update(app.ticker.deltaMS / 1000);
 
-                syncHud();
+                const snapshot = simulation.getSnapshot();
 
-                if (!simulation.getSnapshot().isRunning) {
+                syncHud(snapshot);
+
+                if (!snapshot.isRunning) {
                     keyboard.stop();
+
+                    if (snapshot.endReason !== null && !completionNotified) {
+                        completionNotified = true;
+                        onCompleteRef.current(snapshot);
+                    }
                 }
             };
 
@@ -255,14 +261,12 @@ export function PixiGameCanvas() {
 
             const resizeArena = () => {
                 const scale = Math.min(
-                    target.clientWidth / defaultGameplayConfig.arenaWidth,
-                    target.clientHeight / defaultGameplayConfig.arenaHeight,
+                    target.clientWidth / config.arenaWidth,
+                    target.clientHeight / config.arenaHeight,
                 );
 
-                const renderedWidth = defaultGameplayConfig.arenaWidth * scale;
-
-                const renderedHeight =
-                    defaultGameplayConfig.arenaHeight * scale;
+                const renderedWidth = config.arenaWidth * scale;
+                const renderedHeight = config.arenaHeight * scale;
 
                 app.stage.scale.set(scale);
 
@@ -313,7 +317,7 @@ export function PixiGameCanvas() {
                 destroyApplication();
             }
         };
-    }, []);
+    }, [config]);
 
     const touchDisabled = !hud.isRunning || hud.isPaused;
 
@@ -376,14 +380,9 @@ export function PixiGameCanvas() {
                     </button>
                 )}
 
-                {!hud.isRunning && hud.endReason !== null && (
-                    <button
-                        type="button"
-                        onClick={() => controlsRef.current?.restart()}
-                    >
-                        Play Again
-                    </button>
-                )}
+                <button type="button" onClick={onExit}>
+                    Exit to Menu
+                </button>
             </div>
 
             <p className="keyboard-hint" aria-label="Keyboard controls">
