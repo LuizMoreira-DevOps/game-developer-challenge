@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/compare/v0.11.0...v0.12.0) (2026-10-11)
+
+
+### Features
+
+* implement ranking history and resilient match API ([#41](https://github.com/LuizMoreira-DevOps/game-developer-challenge/issues/41)) ([f6e2798](https://github.com/LuizMoreira-DevOps/game-developer-challenge/commit/f6e2798b3cb74579b5950dedac9d9d2c9e5264ea))
+
 ## [0.11.0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/compare/v0.10.0...v0.11.0) (2026-10-11)
 
 
