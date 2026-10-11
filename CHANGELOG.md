@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/compare/v0.9.0...v0.10.0) (2026-10-11)
+
+
+### Features
+
+* **game:** implement responsive HUD and multitouch controls ([#36](https://github.com/LuizMoreira-DevOps/game-developer-challenge/issues/36)) ([31f6cc3](https://github.com/LuizMoreira-DevOps/game-developer-challenge/commit/31f6cc3086eac04cda68a8bb76d09f325018f34e))
+
 ## [0.9.0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/compare/v0.8.0...v0.9.0) (2026-10-11)
 
 
