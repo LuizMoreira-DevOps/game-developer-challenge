@@ -1,4 +1,4 @@
-import { Graphics, type Container, type Sprite } from "pixi.js";
+import { Graphics, Sprite, type Container, type Texture } from "pixi.js";
 
 import type { GameRenderer } from "../core/GameRuntime";
 
@@ -15,20 +15,29 @@ export class PixiGameRenderer implements GameRenderer {
 
     private readonly projectileGraphics = new Map<number, Graphics>();
 
+    private readonly enemyLayer: Container;
+    private readonly enemyTexture: Texture;
+    private readonly enemySprites = new Map<number, Sprite>();
+
     public constructor(
         playerSprite: Sprite,
         islandVisual: Container,
         projectileLayer: Container,
+        enemyLayer: Container,
+        enemyTexture: Texture,
     ) {
         this.playerSprite = playerSprite;
         this.islandVisual = islandVisual;
         this.projectileLayer = projectileLayer;
+        this.enemyLayer = enemyLayer;
+        this.enemyTexture = enemyTexture;
     }
 
     public render(snapshot: GameSimulationSnapshot): void {
         this.renderIsland(snapshot);
         this.renderPlayer(snapshot);
         this.renderProjectiles(snapshot);
+        this.renderEnemies(snapshot);
     }
 
     private renderIsland(snapshot: GameSimulationSnapshot): void {
@@ -75,6 +84,43 @@ export class PixiGameRenderer implements GameRenderer {
             graphic.destroy();
 
             this.projectileGraphics.delete(id);
+        }
+    }
+
+    private renderEnemies(snapshot: GameSimulationSnapshot): void {
+        const activeIds = new Set<number>();
+
+        for (const enemy of snapshot.enemies) {
+            activeIds.add(enemy.id);
+
+            let sprite = this.enemySprites.get(enemy.id);
+
+            if (!sprite) {
+                sprite = new Sprite(this.enemyTexture);
+                sprite.anchor.set(0.5);
+
+                if (enemy.type === "chaser") {
+                    sprite.tint = 0xff7777;
+                } else {
+                    sprite.tint = 0xffd166;
+                }
+
+                this.enemySprites.set(enemy.id, sprite);
+                this.enemyLayer.addChild(sprite);
+            }
+
+            sprite.position.set(enemy.x, enemy.y);
+            sprite.rotation = enemy.rotation + PLAYER_SPRITE_ROTATION_OFFSET;
+        }
+
+        for (const [id, sprite] of this.enemySprites) {
+            if (activeIds.has(id)) {
+                continue;
+            }
+
+            this.enemyLayer.removeChild(sprite);
+            sprite.destroy();
+            this.enemySprites.delete(id);
         }
     }
 }

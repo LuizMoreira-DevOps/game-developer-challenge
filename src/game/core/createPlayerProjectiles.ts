@@ -66,5 +66,6 @@ function createProjectile(
         speed: config.projectileSpeed,
         damage: config.projectileDamage,
         remainingLifetimeSeconds: config.projectileLifetimeSeconds,
+        owner: "player",
     };
 }

@@ -9,6 +9,8 @@ import { PixiGameRenderer } from "./PixiGameRenderer";
 
 import { createIslandVisual } from "./createIslandVisual";
 
+import enemyShipUrl from "../../../assets/png/default/ships/ship_3.png";
+
 import playerShipUrl from "../../../assets/png/default/ships/ship_2.png";
 
 export function PixiGameCanvas() {
@@ -83,6 +85,16 @@ export function PixiGameCanvas() {
                 return;
             }
 
+            const enemyLayer = new Container();
+
+            app.stage.addChild(enemyLayer);
+
+            const enemyTexture = await Assets.load(enemyShipUrl);
+
+            if (disposed) {
+                return;
+            }
+
             const playerSprite = new Sprite(playerTexture);
 
             playerSprite.anchor.set(0.5);
@@ -95,6 +107,8 @@ export function PixiGameCanvas() {
                 playerSprite,
                 islandVisual,
                 projectileLayer,
+                enemyLayer,
+                enemyTexture,
             );
 
             const keyboard = new KeyboardInput();

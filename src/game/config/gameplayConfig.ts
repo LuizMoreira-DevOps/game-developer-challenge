@@ -20,6 +20,14 @@ export interface GameplayConfig {
     readonly islandX: number;
     readonly islandY: number;
     readonly islandCollisionRadius: number;
+
+    readonly enemyCollisionRadius: number;
+    readonly enemySpawnSafeDistance: number;
+    readonly enemyRotationSpeed: number;
+    readonly chaserMoveSpeed: number;
+    readonly shooterMoveSpeed: number;
+    readonly shooterAttackRange: number;
+    readonly shooterFireCooldownSeconds: number;
 }
 
 export const defaultGameplayConfig = Object.freeze({
@@ -44,4 +52,12 @@ export const defaultGameplayConfig = Object.freeze({
     islandX: 640,
     islandY: 360,
     islandCollisionRadius: 96,
+
+    enemyCollisionRadius: 28,
+    enemySpawnSafeDistance: 120,
+    enemyRotationSpeed: Math.PI,
+    chaserMoveSpeed: 110,
+    shooterMoveSpeed: 85,
+    shooterAttackRange: 260,
+    shooterFireCooldownSeconds: 1.5,
 }) satisfies GameplayConfig;

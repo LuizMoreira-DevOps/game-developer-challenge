@@ -1,3 +1,5 @@
+export type ProjectileOwner = "player" | "enemy";
+
 export interface ProjectileState {
     id: number;
     x: number;
@@ -6,4 +8,5 @@ export interface ProjectileState {
     speed: number;
     damage: number;
     remainingLifetimeSeconds: number;
+    owner: ProjectileOwner;
 }
