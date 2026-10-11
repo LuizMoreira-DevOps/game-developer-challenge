@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/compare/v0.3.0...v0.4.0) (2026-10-11)
+
+
+### Features
+
+* **game:** implement player movement and input ([#15](https://github.com/LuizMoreira-DevOps/game-developer-challenge/issues/15)) ([ad05d7e](https://github.com/LuizMoreira-DevOps/game-developer-challenge/commit/ad05d7e4a9b9a99ea1d54eed64912f7ab7ed5e10))
+
 ## [0.3.0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/compare/v0.2.0...v0.3.0) (2026-10-10)
 
 
