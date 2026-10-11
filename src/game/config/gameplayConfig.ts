@@ -28,6 +28,12 @@ export interface GameplayConfig {
     readonly shooterMoveSpeed: number;
     readonly shooterAttackRange: number;
     readonly shooterFireCooldownSeconds: number;
+
+    readonly playerMaxHealth: number;
+    readonly chaserMaxHealth: number;
+    readonly shooterMaxHealth: number;
+    readonly enemyProjectileDamage: number;
+    readonly chaserCollisionDamage: number;
 }
 
 export const defaultGameplayConfig = Object.freeze({
@@ -60,4 +66,10 @@ export const defaultGameplayConfig = Object.freeze({
     shooterMoveSpeed: 85,
     shooterAttackRange: 260,
     shooterFireCooldownSeconds: 1.5,
+
+    playerMaxHealth: 100,
+    chaserMaxHealth: 50,
+    shooterMaxHealth: 75,
+    enemyProjectileDamage: 10,
+    chaserCollisionDamage: 25,
 }) satisfies GameplayConfig;

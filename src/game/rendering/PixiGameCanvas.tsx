@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Application, Assets, Container, Graphics, Sprite } from "pixi.js";
 
 import { defaultGameplayConfig } from "../config/gameplayConfig";
@@ -15,6 +15,10 @@ import playerShipUrl from "../../../assets/png/default/ships/ship_2.png";
 
 export function PixiGameCanvas() {
     const containerRef = useRef<HTMLDivElement>(null);
+    const [hud, setHud] = useState<{ health: number; score: number }>({
+        health: defaultGameplayConfig.playerMaxHealth,
+        score: 0,
+    });
 
     useEffect(() => {
         const container = containerRef.current;
@@ -109,6 +113,7 @@ export function PixiGameCanvas() {
                 projectileLayer,
                 enemyLayer,
                 enemyTexture,
+                defaultGameplayConfig,
             );
 
             const keyboard = new KeyboardInput();
@@ -119,8 +124,30 @@ export function PixiGameCanvas() {
 
             runtime.start();
 
+            let previousHealth: number = defaultGameplayConfig.playerMaxHealth;
+            let previousScore: number = 0;
+
             const update = () => {
                 runtime.update(app.ticker.deltaMS / 1000);
+
+                const snapshot = simulation.getSnapshot();
+
+                const healthChanged = snapshot.player.health !== previousHealth;
+                const scoreChanged = snapshot.score !== previousScore;
+
+                if (healthChanged || scoreChanged) {
+                    previousHealth = snapshot.player.health;
+                    previousScore = snapshot.score;
+
+                    setHud({
+                        health: previousHealth,
+                        score: previousScore,
+                    });
+                }
+
+                if (!snapshot.isRunning) {
+                    keyboard.stop();
+                }
             };
 
             app.ticker.add(update);
@@ -172,16 +199,27 @@ export function PixiGameCanvas() {
             }
         };
     }, []);
-
     return (
-        <div
-            ref={containerRef}
-            data-testid="game-canvas-container"
-            style={{
-                width: "100%",
-                height: "70vh",
-                minHeight: "320px",
-            }}
-        />
+        <section aria-label="Combat">
+            <div aria-label="Combat statistics">
+                <span>
+                    Health:{" "}
+                    <output aria-label="Player health">{hud.health}</output>
+                </span>
+                {" · "}
+                <span>
+                    Score: <output aria-label="Score">{hud.score}</output>
+                </span>
+            </div>
+            <div
+                ref={containerRef}
+                data-testid="game-canvas-container"
+                style={{
+                    width: "100%",
+                    height: "70vh",
+                    minHeight: "320px",
+                }}
+            />
+        </section>
     );
 }

@@ -55,7 +55,7 @@ test("allows movement and firing simultaneously", () => {
     const initialPlayer = simulation.getSnapshot().player;
 
     simulation.update(
-        0.5,
+        0.1,
         {
             ...idleMovement,
             forward: true,
@@ -69,8 +69,8 @@ test("allows movement and firing simultaneously", () => {
     const snapshot = simulation.getSnapshot();
 
     expect(snapshot.player.y).toBeLessThan(initialPlayer.y);
-
     expect(snapshot.projectiles).toHaveLength(1);
+    expect(snapshot.projectiles[0].owner).toBe("player");
 });
 
 test("prevents repeated broadside fire during cooldown", () => {

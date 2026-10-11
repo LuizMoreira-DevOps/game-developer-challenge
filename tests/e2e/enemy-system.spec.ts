@@ -4,7 +4,13 @@ import { defaultGameplayConfig as config } from "../../src/game/config/gameplayC
 import { createEnemy, updateEnemies } from "../../src/game/core/EnemySystem";
 import type { EnemyState } from "../../src/game/core/EnemyState";
 
-const player = { x: 120, y: 120, rotation: 0 };
+const player = {
+    x: 120,
+    y: 120,
+    rotation: 0,
+    health: config.playerMaxHealth,
+};
+
 const island = {
     x: config.islandX,
     y: config.islandY,
@@ -44,6 +50,7 @@ test("chaser pursues the player", () => {
         y: 120,
         rotation: -Math.PI / 2,
         attackCooldownSeconds: 0,
+        health: config.chaserMaxHealth,
     };
 
     const result = updateEnemies([enemy], player, island, config, 0.5, 1);
@@ -59,6 +66,7 @@ test("chaser self-destructs on player collision", () => {
         y: player.y,
         rotation: 0,
         attackCooldownSeconds: 0,
+        health: config.chaserMaxHealth,
     };
 
     const result = updateEnemies([enemy], player, island, config, 0.016, 1);
@@ -74,6 +82,7 @@ test("shooter fires within range", () => {
         y: 120,
         rotation: -Math.PI / 2,
         attackCooldownSeconds: 0,
+        health: config.shooterMaxHealth,
     };
 
     const result = updateEnemies([enemy], player, island, config, 0.016, 1);
@@ -90,6 +99,7 @@ test("shooter does not fire outside range", () => {
         y: 120,
         rotation: -Math.PI / 2,
         attackCooldownSeconds: 0,
+        health: config.shooterMaxHealth,
     };
 
     const result = updateEnemies([enemy], player, island, config, 0.016, 1);
@@ -105,6 +115,7 @@ test("enemy rotation respects delta time", () => {
         y: 120,
         rotation: 0,
         attackCooldownSeconds: 0,
+        health: config.chaserMaxHealth,
     };
 
     const deltaSeconds = 0.1;
@@ -131,12 +142,14 @@ test("enemy respects arena boundaries", () => {
         y: 120,
         rotation: Math.PI / 2,
         attackCooldownSeconds: 0,
+        health: config.chaserMaxHealth,
     };
 
     const target = {
         x: config.arenaWidth + 100,
         y: 120,
         rotation: 0,
+        health: config.playerMaxHealth,
     };
 
     const result = updateEnemies([enemy], target, island, config, 1, 1);
@@ -154,12 +167,14 @@ test("enemy does not enter island collision radius", () => {
         y: island.y,
         rotation: Math.PI / 2,
         attackCooldownSeconds: 0,
+        health: config.chaserMaxHealth,
     };
 
     const target = {
         x: island.x + 250,
         y: island.y,
         rotation: 0,
+        health: config.playerMaxHealth,
     };
 
     const result = updateEnemies([enemy], target, island, config, 0.5, 1);
@@ -182,6 +197,7 @@ test("separates overlapping enemies", () => {
             y: 300,
             rotation: 0,
             attackCooldownSeconds: 1,
+            health: config.shooterMaxHealth,
         },
         {
             id: 2,
@@ -190,6 +206,7 @@ test("separates overlapping enemies", () => {
             y: 300,
             rotation: 0,
             attackCooldownSeconds: 1,
+            health: config.shooterMaxHealth,
         },
     ];
 

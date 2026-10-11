@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { defaultGameplayConfig } from "../../src/game/config/gameplayConfig";
+import { defaultGameplayConfig as config } from "../../src/game/config/gameplayConfig";
 import { createPlayerProjectiles } from "../../src/game/core/createPlayerProjectiles";
 import type { PlayerState } from "../../src/game/core/PlayerState";
 import { updateProjectiles } from "../../src/game/core/updateProjectiles";
@@ -9,15 +9,11 @@ const player: PlayerState = {
     x: 400,
     y: 300,
     rotation: 0,
+    health: config.playerMaxHealth,
 };
 
 test("creates one front projectile", () => {
-    const projectiles = createPlayerProjectiles(
-        player,
-        "front",
-        1,
-        defaultGameplayConfig,
-    );
+    const projectiles = createPlayerProjectiles(player, "front", 1, config);
 
     expect(projectiles).toHaveLength(1);
 
@@ -27,8 +23,8 @@ test("creates one front projectile", () => {
             x: 400,
             y: 300,
             rotation: 0,
-            speed: defaultGameplayConfig.projectileSpeed,
-            damage: defaultGameplayConfig.projectileDamage,
+            speed: config.projectileSpeed,
+            damage: config.projectileDamage,
         }),
     );
 });
@@ -38,7 +34,7 @@ test("creates three parallel left broadside projectiles", () => {
         player,
         "leftBroadside",
         10,
-        defaultGameplayConfig,
+        config,
     );
 
     expect(projectiles).toHaveLength(3);
@@ -57,7 +53,7 @@ test("creates three parallel right broadside projectiles", () => {
         player,
         "rightBroadside",
         20,
-        defaultGameplayConfig,
+        config,
     );
 
     expect(projectiles).toHaveLength(3);
@@ -68,37 +64,25 @@ test("creates three parallel right broadside projectiles", () => {
 });
 
 test("moves projectiles using delta time", () => {
-    const projectiles = createPlayerProjectiles(
-        player,
-        "front",
-        1,
-        defaultGameplayConfig,
-    );
+    const projectiles = createPlayerProjectiles(player, "front", 1, config);
 
     const updated = updateProjectiles(projectiles, 0.5);
 
     expect(updated[0].x).toBeCloseTo(400);
 
-    expect(updated[0].y).toBeCloseTo(
-        300 - defaultGameplayConfig.projectileSpeed * 0.5,
-    );
+    expect(updated[0].y).toBeCloseTo(300 - config.projectileSpeed * 0.5);
 
     expect(updated[0].remainingLifetimeSeconds).toBeCloseTo(
-        defaultGameplayConfig.projectileLifetimeSeconds - 0.5,
+        config.projectileLifetimeSeconds - 0.5,
     );
 });
 
 test("removes expired projectiles", () => {
-    const projectiles = createPlayerProjectiles(
-        player,
-        "front",
-        1,
-        defaultGameplayConfig,
-    );
+    const projectiles = createPlayerProjectiles(player, "front", 1, config);
 
     const updated = updateProjectiles(
         projectiles,
-        defaultGameplayConfig.projectileLifetimeSeconds,
+        config.projectileLifetimeSeconds,
     );
 
     expect(updated).toHaveLength(0);

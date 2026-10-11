@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { defaultGameplayConfig } from "../../src/game/config/gameplayConfig";
+import { defaultGameplayConfig as config } from "../../src/game/config/gameplayConfig";
 import type {
     PlayerMovementInput,
     PlayerState,
@@ -18,6 +18,7 @@ test("moves the player forward using delta time", () => {
         x: 100,
         y: 200,
         rotation: 0,
+        health: config.playerMaxHealth,
     };
 
     updatePlayerMovement(
@@ -26,7 +27,7 @@ test("moves the player forward using delta time", () => {
             ...idleInput,
             forward: true,
         },
-        defaultGameplayConfig,
+        config,
         0.5,
     );
 
@@ -39,6 +40,7 @@ test("rotates the player to the right using delta time", () => {
         x: 0,
         y: 0,
         rotation: 0,
+        health: config.playerMaxHealth,
     };
 
     updatePlayerMovement(
@@ -47,7 +49,7 @@ test("rotates the player to the right using delta time", () => {
             ...idleInput,
             turnRight: true,
         },
-        defaultGameplayConfig,
+        config,
         0.5,
     );
 
@@ -59,6 +61,7 @@ test("rotates the player to the left using delta time", () => {
         x: 0,
         y: 0,
         rotation: 0,
+        health: config.playerMaxHealth,
     };
 
     updatePlayerMovement(
@@ -67,7 +70,7 @@ test("rotates the player to the left using delta time", () => {
             ...idleInput,
             turnLeft: true,
         },
-        defaultGameplayConfig,
+        config,
         0.5,
     );
 
@@ -79,6 +82,7 @@ test("keeps the player inside the top arena boundary", () => {
         x: 200,
         y: 40,
         rotation: 0,
+        health: config.playerMaxHealth,
     };
 
     updatePlayerMovement(
@@ -87,11 +91,11 @@ test("keeps the player inside the top arena boundary", () => {
             ...idleInput,
             forward: true,
         },
-        defaultGameplayConfig,
+        config,
         1,
     );
 
-    expect(player.y).toBe(defaultGameplayConfig.playerCollisionRadius);
+    expect(player.y).toBe(config.playerCollisionRadius);
 });
 
 test("keeps the player inside the bottom arena boundary", () => {
@@ -99,6 +103,7 @@ test("keeps the player inside the bottom arena boundary", () => {
         x: 200,
         y: 680,
         rotation: Math.PI,
+        health: config.playerMaxHealth,
     };
 
     updatePlayerMovement(
@@ -107,14 +112,11 @@ test("keeps the player inside the bottom arena boundary", () => {
             ...idleInput,
             forward: true,
         },
-        defaultGameplayConfig,
+        config,
         1,
     );
 
-    expect(player.y).toBe(
-        defaultGameplayConfig.arenaHeight -
-            defaultGameplayConfig.playerCollisionRadius,
-    );
+    expect(player.y).toBe(config.arenaHeight - config.playerCollisionRadius);
 });
 
 test("keeps the player inside the left arena boundary", () => {
@@ -122,6 +124,7 @@ test("keeps the player inside the left arena boundary", () => {
         x: 40,
         y: 200,
         rotation: -Math.PI / 2,
+        health: config.playerMaxHealth,
     };
 
     updatePlayerMovement(
@@ -130,11 +133,11 @@ test("keeps the player inside the left arena boundary", () => {
             ...idleInput,
             forward: true,
         },
-        defaultGameplayConfig,
+        config,
         1,
     );
 
-    expect(player.x).toBe(defaultGameplayConfig.playerCollisionRadius);
+    expect(player.x).toBe(config.playerCollisionRadius);
 });
 
 test("keeps the player inside the right arena boundary", () => {
@@ -142,6 +145,7 @@ test("keeps the player inside the right arena boundary", () => {
         x: 1240,
         y: 200,
         rotation: Math.PI / 2,
+        health: config.playerMaxHealth,
     };
 
     updatePlayerMovement(
@@ -150,12 +154,9 @@ test("keeps the player inside the right arena boundary", () => {
             ...idleInput,
             forward: true,
         },
-        defaultGameplayConfig,
+        config,
         1,
     );
 
-    expect(player.x).toBe(
-        defaultGameplayConfig.arenaWidth -
-            defaultGameplayConfig.playerCollisionRadius,
-    );
+    expect(player.x).toBe(config.arenaWidth - config.playerCollisionRadius);
 });
