@@ -61,6 +61,34 @@
     outline-offset: 2px;
 }
 
+.remote-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.remote-table-scroll table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.remote-table-scroll th,
+.remote-table-scroll td {
+    padding: 10px;
+    border-bottom: 1px solid #777;
+    white-space: nowrap;
+}
+
+.remote-table-scroll th {
+    font-weight: 700;
+}
+
+.app-actions button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
 @media (max-width: 480px) {
     .application-main {
         padding: 10px;
