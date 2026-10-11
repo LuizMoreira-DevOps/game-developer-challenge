@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/compare/v0.5.0...v0.6.0) (2026-10-11)
+
+
+### Features
+
+* **game:** implement island and world collision ([#28](https://github.com/LuizMoreira-DevOps/game-developer-challenge/issues/28)) ([f7f5c50](https://github.com/LuizMoreira-DevOps/game-developer-challenge/commit/f7f5c503d6199a3ad6825b9ff21fedaa2cfdf3a4))
+
 ## [0.5.0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/compare/v0.4.0...v0.5.0) (2026-10-11)
 
 
