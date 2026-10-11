@@ -35,6 +35,12 @@ class FakeWindow {
             listener(event);
         }
     }
+
+    public dispatchBlur(): void {
+        for (const listener of this.listeners.get("blur") ?? []) {
+            listener({} as KeyboardEvent);
+        }
+    }
 }
 
 test("stops listening and clears pressed keys", () => {
@@ -54,4 +60,21 @@ test("stops listening and clears pressed keys", () => {
     target.dispatchKey("keydown", "KeyW");
 
     expect(keyboard.getMovementInput().forward).toBe(false);
+});
+
+test("clears pressed weapon keys when window loses focus", () => {
+    const keyboard = new KeyboardInput();
+    const target = new FakeWindow();
+
+    keyboard.start(target as unknown as Window);
+
+    target.dispatchKey("keydown", "Space");
+
+    expect(keyboard.getWeaponInput().fireFront).toBe(true);
+
+    target.dispatchBlur();
+
+    expect(keyboard.getWeaponInput().fireFront).toBe(false);
+
+    keyboard.stop();
 });

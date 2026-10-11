@@ -6,6 +6,16 @@ export interface GameplayConfig {
     readonly arenaWidth: number;
     readonly arenaHeight: number;
     readonly playerCollisionRadius: number;
+
+    readonly projectileSpeed: number;
+    readonly projectileDamage: number;
+    readonly projectileLifetimeSeconds: number;
+
+    readonly frontFireCooldownSeconds: number;
+    readonly broadsideCooldownSeconds: number;
+
+    readonly broadsideProjectileCount: number;
+    readonly broadsideProjectileSpacing: number;
 }
 
 export const defaultGameplayConfig = Object.freeze({
@@ -16,4 +26,14 @@ export const defaultGameplayConfig = Object.freeze({
     arenaWidth: 1280,
     arenaHeight: 720,
     playerCollisionRadius: 32,
+
+    projectileSpeed: 520,
+    projectileDamage: 25,
+    projectileLifetimeSeconds: 1.5,
+
+    frontFireCooldownSeconds: 0.4,
+    broadsideCooldownSeconds: 1.2,
+
+    broadsideProjectileCount: 3,
+    broadsideProjectileSpacing: 28,
 }) satisfies GameplayConfig;
