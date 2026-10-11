@@ -19,6 +19,14 @@ import { ResultScreen } from "./game/ui/ResultScreen";
 
 import "./game/ui/application-ui.css";
 
+import { RankingScreen, HistoryScreen } from "./game/ui/RemoteScreens";
+
+import { isMatchConfirmed } from "./game/api/submissionReceipts";
+
+import { readPendingMatches } from "./game/api/pendingMatches";
+
+import { usePendingMatchSync } from "./game/api/usePendingMatchSync";
+
 type Screen = "menu" | "options" | "game" | "result" | "ranking" | "history";
 
 function App() {
@@ -33,6 +41,15 @@ function App() {
     );
 
     const [session, setSession] = useState<MatchSession | null>(null);
+
+    const {
+        player,
+        pendingCount,
+        isSyncing,
+        syncError,
+        queueCompletedMatch,
+        syncPendingMatches,
+    } = usePendingMatchSync();
 
     useEffect(() => {
         // Recover a match left active by a previous reload/crash.
@@ -72,6 +89,8 @@ function App() {
     ) => {
         const result = recordCompletedMatch(finishedSession, snapshot);
 
+        queueCompletedMatch(result);
+
         setLastResult(result);
         setSession(null);
         setScreen("result");
@@ -83,6 +102,22 @@ function App() {
         setSession(null);
         setScreen("menu");
     };
+
+    const resultConfirmed = lastResult
+        ? isMatchConfirmed(lastResult.id)
+        : false;
+
+    const resultPending = lastResult
+        ? readPendingMatches().some((match) => match.matchId === lastResult.id)
+        : false;
+
+    const submissionStatus = resultConfirmed
+        ? "synced"
+        : resultPending && isSyncing
+          ? "syncing"
+          : resultPending
+            ? "pending"
+            : "unknown";
 
     return (
         <main className="application-main">
@@ -189,25 +224,27 @@ function App() {
             {screen === "result" && lastResult && (
                 <ResultScreen
                     result={lastResult}
+                    submissionStatus={submissionStatus}
+                    pendingCount={pendingCount}
+                    syncError={syncError}
+                    onRetry={() => void syncPendingMatches()}
                     onPlayAgain={startNewMatch}
                     onMainMenu={() => setScreen("menu")}
                 />
             )}
 
-            {(screen === "ranking" || screen === "history") && (
-                <section className="app-panel">
-                    <h2>
-                        {screen === "ranking" ? "Ranking" : "Match History"}
-                    </h2>
+            {screen === "ranking" && (
+                <RankingScreen
+                    options={options}
+                    onMainMenu={() => setScreen("menu")}
+                />
+            )}
 
-                    <p>
-                        This section will be connected to the API in issue #26.
-                    </p>
-
-                    <button type="button" onClick={() => setScreen("menu")}>
-                        Main Menu
-                    </button>
-                </section>
+            {screen === "history" && (
+                <HistoryScreen
+                    playerId={player.id}
+                    onMainMenu={() => setScreen("menu")}
+                />
             )}
         </main>
     );
