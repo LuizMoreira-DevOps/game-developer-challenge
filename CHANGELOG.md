@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/compare/v0.7.0...v0.8.0) (2026-10-11)
+
+
+### Features
+
+* **combat:** implement health, damage, scoring and visual feedback ([#32](https://github.com/LuizMoreira-DevOps/game-developer-challenge/issues/32)) ([9d81dac](https://github.com/LuizMoreira-DevOps/game-developer-challenge/commit/9d81dacbc234b3c245503fa478626bcaac3dadc1))
+
 ## [0.7.0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/compare/v0.6.0...v0.7.0) (2026-10-11)
 
 
