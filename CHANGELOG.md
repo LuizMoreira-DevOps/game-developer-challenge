@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/compare/v0.6.0...v0.7.0) (2026-10-11)
+
+
+### Features
+
+* implement enemy spawning and AI systems ([#30](https://github.com/LuizMoreira-DevOps/game-developer-challenge/issues/30)) ([4721687](https://github.com/LuizMoreira-DevOps/game-developer-challenge/commit/4721687d55bf099d50249eb69cae577ba89138ed))
+
 ## [0.6.0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/compare/v0.5.0...v0.6.0) (2026-10-11)
 
 
