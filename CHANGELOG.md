@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/compare/v0.4.0...v0.5.0) (2026-10-11)
+
+
+### Features
+
+* **game:** implement player weapons and projectiles ([#18](https://github.com/LuizMoreira-DevOps/game-developer-challenge/issues/18)) ([71886e4](https://github.com/LuizMoreira-DevOps/game-developer-challenge/commit/71886e4aab802722deeff8a9e293f86c64b36909))
+
 ## [0.4.0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/compare/v0.3.0...v0.4.0) (2026-10-11)
 
 
