@@ -16,6 +16,10 @@ export interface GameplayConfig {
 
     readonly broadsideProjectileCount: number;
     readonly broadsideProjectileSpacing: number;
+
+    readonly islandX: number;
+    readonly islandY: number;
+    readonly islandCollisionRadius: number;
 }
 
 export const defaultGameplayConfig = Object.freeze({
@@ -36,4 +40,8 @@ export const defaultGameplayConfig = Object.freeze({
 
     broadsideProjectileCount: 3,
     broadsideProjectileSpacing: 28,
+
+    islandX: 640,
+    islandY: 360,
+    islandCollisionRadius: 96,
 }) satisfies GameplayConfig;

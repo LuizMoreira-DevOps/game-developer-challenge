@@ -7,6 +7,8 @@ import { GameSimulation } from "../core/GameSimulation";
 import { KeyboardInput } from "../input/KeyboardInput";
 import { PixiGameRenderer } from "./PixiGameRenderer";
 
+import { createIslandVisual } from "./createIslandVisual";
+
 import playerShipUrl from "../../../assets/png/default/ships/ship_2.png";
 
 export function PixiGameCanvas() {
@@ -63,6 +65,14 @@ export function PixiGameCanvas() {
 
             app.stage.addChild(arena);
 
+            const islandVisual = await createIslandVisual();
+
+            if (disposed) {
+                return;
+            }
+
+            app.stage.addChild(islandVisual);
+
             const projectileLayer = new Container();
 
             app.stage.addChild(projectileLayer);
@@ -83,6 +93,7 @@ export function PixiGameCanvas() {
 
             const renderer = new PixiGameRenderer(
                 playerSprite,
+                islandVisual,
                 projectileLayer,
             );
 
