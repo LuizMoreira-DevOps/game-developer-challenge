@@ -1,0 +1,123 @@
+.gameplay-shell {
+    width: 100%;
+    max-width: 1280px;
+    min-width: 0;
+    margin-inline: auto;
+    box-sizing: border-box;
+}
+
+.gameplay-hud {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin-bottom: 8px;
+}
+
+.gameplay-hud button {
+    min-height: 36px;
+    padding: 4px 12px;
+    cursor: pointer;
+}
+
+.keyboard-hint {
+    margin: 8px 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.gameplay-arena {
+    width: 100%;
+    height: min(70vh, 720px);
+    min-height: 320px;
+    min-width: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.gameplay-arena canvas {
+    display: block;
+}
+
+.touch-controls {
+    display: none;
+}
+
+.touch-controls-group {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    min-width: 0;
+}
+
+.touch-control {
+    min-width: 0;
+    min-height: 58px;
+    padding: 10px 6px;
+
+    border: 1px solid #64748b;
+    border-radius: 8px;
+
+    background: #162c3e;
+    color: #ffffff;
+
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.2;
+
+    cursor: pointer;
+
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+
+.touch-control:active,
+.touch-control[data-pressed="true"] {
+    background: #2563eb;
+}
+
+.touch-control:focus-visible,
+.gameplay-hud button:focus-visible {
+    outline: 3px solid #facc15;
+    outline-offset: 2px;
+}
+
+.touch-control:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+@media (any-pointer: coarse) {
+    .gameplay-arena {
+        height: min(42dvh, 440px);
+        min-height: 220px;
+    }
+
+    .touch-controls {
+        display: grid;
+        gap: 8px;
+        margin-top: 10px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+}
+
+@media (max-width: 480px) {
+    .gameplay-hud {
+        gap: 6px 10px;
+        font-size: 0.9rem;
+    }
+
+    .keyboard-hint {
+        font-size: 0.78rem;
+    }
+
+    .touch-control {
+        font-size: 0.8rem;
+        min-height: 56px;
+        padding: 8px 4px;
+    }
+}

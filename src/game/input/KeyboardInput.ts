@@ -7,7 +7,7 @@ const LEFT_KEYS = new Set(["KeyA", "ArrowLeft"]);
 const RIGHT_KEYS = new Set(["KeyD", "ArrowRight"]);
 const BACKWARD_KEYS = new Set(["KeyS", "ArrowDown"]);
 
-const FIRE_FRONT_KEYS = new Set(["Space"]);
+const FIRE_FRONT_KEYS = new Set(["Space", "KeyF"]);
 const FIRE_LEFT_BROADSIDE_KEYS = new Set(["KeyQ"]);
 const FIRE_RIGHT_BROADSIDE_KEYS = new Set(["KeyE"]);
 
