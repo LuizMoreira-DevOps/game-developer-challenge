@@ -12,6 +12,9 @@ import { updateProjectiles } from "./updateProjectiles";
 
 import type { IslandState } from "./IslandState";
 
+import { createEnemy, updateEnemies } from "./EnemySystem";
+import type { EnemyState, EnemyType } from "./EnemyState";
+
 import { resolveCircleOverlap } from "./collision/resolveCircleOverlap";
 
 export interface GameSimulationSnapshot {
@@ -21,6 +24,7 @@ export interface GameSimulationSnapshot {
     readonly player: Readonly<PlayerState>;
     readonly projectiles: readonly Readonly<ProjectileState>[];
     readonly island: Readonly<IslandState>;
+    readonly enemies: readonly Readonly<EnemyState>[];
 }
 
 export class GameSimulation {
@@ -46,6 +50,11 @@ export class GameSimulation {
     private leftBroadsideCooldownSeconds = 0;
     private rightBroadsideCooldownSeconds = 0;
 
+    private enemies: EnemyState[] = [];
+    private nextEnemyId = 1;
+    private enemySpawnTimerSeconds = 0;
+    private nextEnemyType: EnemyType = "chaser";
+
     public constructor(config: GameplayConfig) {
         this.config = config;
 
@@ -67,6 +76,11 @@ export class GameSimulation {
         this.frontFireCooldownSeconds = 0;
         this.leftBroadsideCooldownSeconds = 0;
         this.rightBroadsideCooldownSeconds = 0;
+
+        this.enemies = [];
+        this.nextEnemyId = 1;
+        this.enemySpawnTimerSeconds = 0;
+        this.nextEnemyType = "chaser";
     }
 
     public update(
@@ -115,6 +129,44 @@ export class GameSimulation {
         if (this.elapsedSeconds >= this.config.matchDurationSeconds) {
             this.stop();
         }
+
+        this.enemySpawnTimerSeconds += deltaSeconds;
+
+        while (
+            this.enemySpawnTimerSeconds >= this.config.enemySpawnIntervalSeconds
+        ) {
+            this.enemySpawnTimerSeconds -=
+                this.config.enemySpawnIntervalSeconds;
+
+            const enemy = createEnemy(
+                this.nextEnemyId,
+                this.nextEnemyType,
+                this.player,
+                this.island,
+                this.config,
+            );
+
+            if (enemy) {
+                this.enemies.push(enemy);
+                this.nextEnemyId++;
+
+                this.nextEnemyType =
+                    this.nextEnemyType === "chaser" ? "shooter" : "chaser";
+            }
+        }
+
+        const enemyUpdate = updateEnemies(
+            this.enemies,
+            this.player,
+            this.island,
+            this.config,
+            deltaSeconds,
+            this.nextProjectileId,
+        );
+
+        this.enemies = enemyUpdate.enemies;
+        this.projectiles.push(...enemyUpdate.projectiles);
+        this.nextProjectileId += enemyUpdate.projectiles.length;
     }
 
     public pause(): void {
@@ -148,6 +200,7 @@ export class GameSimulation {
             island: {
                 ...this.island,
             },
+            enemies: this.enemies.map((enemy) => ({ ...enemy })),
         };
     }
 
