@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/compare/v1.1.0...v1.2.0) (2026-10-12)
+
+
+### Features
+
+* finalize accessibility, visual refinements and project documentation ([#51](https://github.com/LuizMoreira-DevOps/game-developer-challenge/issues/51)) ([46ba3c0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/commit/46ba3c054156ecf35030a2aacdda460b170ee8b1))
+
 ## [1.1.0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/compare/v1.0.0...v1.1.0) (2026-10-12)
 
 
