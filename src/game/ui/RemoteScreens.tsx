@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { fetchMatchHistory, fetchRanking } from "../api/client";
+
 import { RULESET_VERSION } from "../api/contracts";
 import type { MatchOptions } from "../state/matchPersistence";
 
@@ -15,13 +16,18 @@ interface PaginationProps {
 
 function Pagination({ page, totalPages, onPageChange }: PaginationProps) {
     return (
-        <nav aria-label="Results pagination" className="app-actions">
+        <nav
+            className="app-actions log-pagination"
+            aria-label="Results pagination"
+        >
             <button
                 type="button"
+                className="round-button"
+                aria-label="Previous"
                 disabled={page <= 1}
                 onClick={() => onPageChange(page - 1)}
             >
-                Previous
+                ‹
             </button>
 
             <span aria-live="polite">
@@ -30,10 +36,42 @@ function Pagination({ page, totalPages, onPageChange }: PaginationProps) {
 
             <button
                 type="button"
+                className="round-button"
+                aria-label="Next"
                 disabled={page >= totalPages}
                 onClick={() => onPageChange(page + 1)}
             >
-                Next
+                ›
+            </button>
+        </nav>
+    );
+}
+
+interface CaptainLogTabsProps {
+    active: "ranking" | "history";
+    onRanking: () => void;
+    onHistory: () => void;
+}
+
+function CaptainLogTabs({ active, onRanking, onHistory }: CaptainLogTabsProps) {
+    return (
+        <nav className="log-tabs" aria-label="Captain's log sections">
+            <button
+                type="button"
+                className={active === "ranking" ? "is-active" : ""}
+                aria-current={active === "ranking" ? "page" : undefined}
+                onClick={onRanking}
+            >
+                Ranking
+            </button>
+
+            <button
+                type="button"
+                className={active === "history" ? "is-active" : ""}
+                aria-current={active === "history" ? "page" : undefined}
+                onClick={onHistory}
+            >
+                Match History
             </button>
         </nav>
     );
@@ -41,10 +79,17 @@ function Pagination({ page, totalPages, onPageChange }: PaginationProps) {
 
 interface RankingScreenProps {
     options: MatchOptions;
+    playerId: string;
     onMainMenu: () => void;
+    onHistory: () => void;
 }
 
-export function RankingScreen({ options, onMainMenu }: RankingScreenProps) {
+export function RankingScreen({
+    options,
+    playerId,
+    onMainMenu,
+    onHistory,
+}: RankingScreenProps) {
     const [page, setPage] = useState(1);
 
     const query = useQuery({
@@ -71,12 +116,25 @@ export function RankingScreen({ options, onMainMenu }: RankingScreenProps) {
     });
 
     return (
-        <section className="app-panel" aria-labelledby="ranking-heading">
-            <h2 id="ranking-heading">Ranking</h2>
+        <section
+            className="app-panel app-panel--log"
+            aria-labelledby="ranking-heading"
+        >
+            <p className="log-brand">Captain's Log</p>
 
-            <p>
-                Match: {options.matchDurationSeconds}s · Enemy spawn:{" "}
-                {options.enemySpawnIntervalSeconds}s
+            <h2 id="ranking-heading" className="log-screen-heading">
+                Ranking
+            </h2>
+
+            <CaptainLogTabs
+                active="ranking"
+                onRanking={() => setPage(1)}
+                onHistory={onHistory}
+            />
+
+            <p className="log-description">
+                Match: {options.matchDurationSeconds}s{" · "}
+                Enemy spawn: {options.enemySpawnIntervalSeconds}s
             </p>
 
             {query.isPending && <p role="status">Loading ranking...</p>}
@@ -94,7 +152,9 @@ export function RankingScreen({ options, onMainMenu }: RankingScreenProps) {
             )}
 
             {query.data?.items.length === 0 && (
-                <p>No ranking results for this configuration.</p>
+                <p className="log-empty">
+                    No ranking results for this configuration.
+                </p>
             )}
 
             {query.data && query.data.items.length > 0 && (
@@ -108,15 +168,50 @@ export function RankingScreen({ options, onMainMenu }: RankingScreenProps) {
                                 <th scope="col">Time</th>
                             </tr>
                         </thead>
+
                         <tbody>
-                            {query.data.items.map((entry) => (
-                                <tr key={entry.matchId}>
-                                    <td>{entry.rank}</td>
-                                    <td>{entry.playerName}</td>
-                                    <td>{entry.score}</td>
-                                    <td>{Math.round(entry.elapsedSeconds)}s</td>
-                                </tr>
-                            ))}
+                            {query.data.items.map((entry) => {
+                                const isCurrentPlayer =
+                                    entry.playerId === playerId;
+
+                                return (
+                                    <tr
+                                        key={entry.matchId}
+                                        className={
+                                            isCurrentPlayer
+                                                ? "is-current-player"
+                                                : entry.rank <= 3
+                                                  ? "is-top-three"
+                                                  : undefined
+                                        }
+                                    >
+                                        <td className="log-rank">
+                                            {String(entry.rank).padStart(
+                                                2,
+                                                "0",
+                                            )}
+                                        </td>
+
+                                        <td>
+                                            {entry.playerName}
+
+                                            {isCurrentPlayer && (
+                                                <span className="ranking-you">
+                                                    YOU
+                                                </span>
+                                            )}
+                                        </td>
+
+                                        <td className="log-score">
+                                            {entry.score}
+                                        </td>
+
+                                        <td>
+                                            {Math.round(entry.elapsedSeconds)}s
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
@@ -130,7 +225,7 @@ export function RankingScreen({ options, onMainMenu }: RankingScreenProps) {
                 />
             )}
 
-            <div className="app-actions">
+            <div className="app-actions log-actions">
                 <button
                     type="button"
                     onClick={() => void query.refetch()}
@@ -150,9 +245,14 @@ export function RankingScreen({ options, onMainMenu }: RankingScreenProps) {
 interface HistoryScreenProps {
     playerId: string;
     onMainMenu: () => void;
+    onRanking: () => void;
 }
 
-export function HistoryScreen({ playerId, onMainMenu }: HistoryScreenProps) {
+export function HistoryScreen({
+    playerId,
+    onMainMenu,
+    onRanking,
+}: HistoryScreenProps) {
     const [page, setPage] = useState(1);
 
     const query = useQuery({
@@ -170,8 +270,23 @@ export function HistoryScreen({ playerId, onMainMenu }: HistoryScreenProps) {
     });
 
     return (
-        <section className="app-panel" aria-labelledby="history-heading">
-            <h2 id="history-heading">Match History</h2>
+        <section
+            className="app-panel app-panel--log"
+            aria-labelledby="history-heading"
+        >
+            <p className="log-brand">Captain's Log</p>
+
+            <h2 id="history-heading" className="log-screen-heading">
+                Match History
+            </h2>
+
+            <CaptainLogTabs
+                active="history"
+                onRanking={onRanking}
+                onHistory={() => setPage(1)}
+            />
+
+            <p className="log-description">Your recent battles</p>
 
             {query.isPending && <p role="status">Loading match history...</p>}
 
@@ -188,7 +303,7 @@ export function HistoryScreen({ playerId, onMainMenu }: HistoryScreenProps) {
             )}
 
             {query.data?.items.length === 0 && (
-                <p>No completed matches recorded yet.</p>
+                <p className="log-empty">No completed matches recorded yet.</p>
             )}
 
             {query.data && query.data.items.length > 0 && (
@@ -203,6 +318,7 @@ export function HistoryScreen({ playerId, onMainMenu }: HistoryScreenProps) {
                                 <th scope="col">Configuration</th>
                             </tr>
                         </thead>
+
                         <tbody>
                             {query.data.items.map((match) => (
                                 <tr key={match.matchId}>
@@ -211,15 +327,19 @@ export function HistoryScreen({ playerId, onMainMenu }: HistoryScreenProps) {
                                             match.finishedAt,
                                         ).toLocaleString()}
                                     </td>
-                                    <td>{match.score}</td>
+
+                                    <td className="log-score">{match.score}</td>
+
                                     <td>{Math.round(match.elapsedSeconds)}s</td>
+
                                     <td>
                                         {match.endReason === "time"
                                             ? "Time's up"
                                             : "Ship destroyed"}
                                     </td>
+
                                     <td>
-                                        {match.matchDurationSeconds}s /{" "}
+                                        {match.matchDurationSeconds}s{" / "}
                                         {match.enemySpawnIntervalSeconds}s
                                     </td>
                                 </tr>
@@ -237,7 +357,7 @@ export function HistoryScreen({ playerId, onMainMenu }: HistoryScreenProps) {
                 />
             )}
 
-            <div className="app-actions">
+            <div className="app-actions log-actions">
                 <button
                     type="button"
                     onClick={() => void query.refetch()}

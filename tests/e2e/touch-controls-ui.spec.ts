@@ -5,6 +5,8 @@ async function ensureMatchPlaying(page: Page): Promise<void> {
         waitUntil: "domcontentloaded",
     });
 
+    await page.bringToFront();
+
     await page
         .getByRole("button", {
             name: "Play",
@@ -12,11 +14,17 @@ async function ensureMatchPlaying(page: Page): Promise<void> {
         })
         .click();
 
-    await page.bringToFront();
-
     await expect(
         page.getByTestId("game-canvas-container").locator("canvas"),
-    ).toBeVisible({ timeout: 15000 });
+    ).toBeVisible({ timeout: 15_000 });
+
+    const status = page.getByRole("status", {
+        name: "Match status",
+    });
+
+    await expect(status).toHaveText(/^(Playing|Paused)$/, {
+        timeout: 15_000,
+    });
 
     const resumeButton = page.getByRole("button", {
         name: "Resume",
@@ -27,9 +35,7 @@ async function ensureMatchPlaying(page: Page): Promise<void> {
         await resumeButton.click();
     }
 
-    await expect(
-        page.getByRole("status", { name: "Match status" }),
-    ).toContainText("Playing");
+    await expect(status).toHaveText("Playing");
 }
 
 test("HUD exposes health, score, timer and keyboard controls", async ({
@@ -41,11 +47,17 @@ test("HUD exposes health, score, timer and keyboard controls", async ({
         page.getByRole("status", { name: "Player health" }),
     ).toBeVisible();
 
-    await expect(page.getByRole("status", { name: "Score" })).toBeVisible();
+    await expect(
+        page.getByRole("status", { name: "Score", exact: true }),
+    ).toBeVisible();
 
     await expect(
         page.getByRole("status", { name: "Remaining time" }),
-    ).toBeVisible();
+    ).toBeAttached();
+
+    await expect(
+        page.getByRole("status", { name: "Remaining time" }),
+    ).toHaveText(/^\d+$/);
 
     const keyboardHint = page.getByLabel("Keyboard controls");
 
@@ -75,16 +87,18 @@ test("mobile controls are visible, responsive and respect pause", async ({
     ];
 
     for (const label of labels) {
-        await expect(
-            page.getByRole("button", {
-                name: label,
-                exact: true,
-            }),
-        ).toBeVisible();
+        const control = page.getByRole("button", {
+            name: label,
+            exact: true,
+        });
+
+        await expect(control).toBeVisible();
+        await expect(control).toBeEnabled();
     }
 
     const forwardButton = page.getByRole("button", {
         name: "Move forward",
+        exact: true,
     });
 
     await expect(forwardButton).toHaveCSS("touch-action", "none");
@@ -104,7 +118,18 @@ test("mobile controls are visible, responsive and respect pause", async ({
         })
         .click();
 
-    await expect(forwardButton).toBeDisabled();
+    await expect(page.getByRole("status", { name: "Match status" })).toHaveText(
+        "Paused",
+    );
+
+    for (const label of labels) {
+        await expect(
+            page.getByRole("button", {
+                name: label,
+                exact: true,
+            }),
+        ).toBeDisabled();
+    }
 
     await page
         .getByRole("button", {
@@ -113,7 +138,18 @@ test("mobile controls are visible, responsive and respect pause", async ({
         })
         .click();
 
-    await expect(forwardButton).toBeEnabled();
+    await expect(page.getByRole("status", { name: "Match status" })).toHaveText(
+        "Playing",
+    );
+
+    for (const label of labels) {
+        await expect(
+            page.getByRole("button", {
+                name: label,
+                exact: true,
+            }),
+        ).toBeEnabled();
+    }
 });
 
 test("mobile supports simultaneous movement and firing touches", async ({
@@ -128,20 +164,30 @@ test("mobile supports simultaneous movement and firing touches", async ({
 
     const forward = page.getByRole("button", {
         name: "Move forward",
+        exact: true,
     });
 
     const fire = page.getByRole("button", {
         name: "Fire front cannon",
+        exact: true,
     });
+
+    const touchControls = page.getByTestId("touch-controls");
+
+    await touchControls.scrollIntoViewIfNeeded();
+
+    await expect(forward).toBeVisible();
+    await expect(fire).toBeVisible();
+    await expect(forward).toBeEnabled();
+    await expect(fire).toBeEnabled();
+    await expect(forward).toBeInViewport();
+    await expect(fire).toBeInViewport();
 
     const forwardBox = await forward.boundingBox();
     const fireBox = await fire.boundingBox();
 
-    expect(forwardBox).not.toBeNull();
-    expect(fireBox).not.toBeNull();
-
     if (!forwardBox || !fireBox) {
-        throw new Error("Touch controls have no layout boxes.");
+        throw new Error("Touch controls must have visible bounding boxes.");
     }
 
     const forwardPoint = {
@@ -159,23 +205,25 @@ test("mobile supports simultaneous movement and firing touches", async ({
     const session = await page.context().newCDPSession(page);
 
     try {
+        // Finger 1: start moving forward.
         await session.send("Input.dispatchTouchEvent", {
             type: "touchStart",
             touchPoints: [forwardPoint],
         });
 
         await expect(forward).toHaveAttribute("data-pressed", "true");
+        await expect(fire).toHaveAttribute("data-pressed", "false");
 
+        // Finger 2: start firing while finger 1 remains pressed.
         await session.send("Input.dispatchTouchEvent", {
             type: "touchStart",
             touchPoints: [firePoint],
         });
 
         await expect(forward).toHaveAttribute("data-pressed", "true");
-
         await expect(fire).toHaveAttribute("data-pressed", "true");
 
-        // Release forward while keeping the firing finger pressed.
+        // Release finger 1 while keeping finger 2 pressed.
         await session.send("Input.dispatchTouchEvent", {
             type: "touchEnd",
             touchPoints: [forwardPoint],
@@ -183,14 +231,16 @@ test("mobile supports simultaneous movement and firing touches", async ({
 
         await expect(forward).toHaveAttribute("data-pressed", "false");
         await expect(fire).toHaveAttribute("data-pressed", "true");
-    } finally {
+
+        // Release finger 2.
         await session.send("Input.dispatchTouchEvent", {
             type: "touchEnd",
-            touchPoints: [],
+            touchPoints: [firePoint],
         });
 
+        await expect(forward).toHaveAttribute("data-pressed", "false");
+        await expect(fire).toHaveAttribute("data-pressed", "false");
+    } finally {
         await session.detach();
     }
-
-    await expect(fire).toHaveAttribute("data-pressed", "false");
 });

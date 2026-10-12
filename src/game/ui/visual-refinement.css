@@ -1,0 +1,758 @@
+/*
+ * Pirate Battle
+ * Visual refinement: responsive layout, native asset ratios,
+ * leaderboard highlights and gameplay controls.
+ */
+
+/* Shared layout */
+
+.application-main:not(.application-main--game) {
+    overflow: visible;
+    min-height: 100dvh;
+    padding-block: clamp(8px, 1.5dvh, 20px);
+}
+
+.application-main--menu {
+    gap: clamp(3px, 0.8dvh, 10px);
+    justify-content: safe center;
+}
+
+.application-main--menu .app-brand h1 {
+    width: min(320px, 37dvh, 78vw);
+}
+
+.application-main--menu .app-brand p {
+    margin: -6px 0 0;
+}
+
+.app-panel--menu {
+    width: min(590px, calc(100vw - 20px));
+    padding: clamp(9px, 1.5dvh, 18px) clamp(12px, 2vw, 26px);
+    border-width: clamp(14px, 2.5dvh, 24px);
+    border-image-width: clamp(14px, 2.5dvh, 24px);
+}
+
+.app-panel--menu h2 {
+    margin-bottom: 9px;
+}
+
+.app-panel--menu .menu-intro {
+    margin-bottom: 10px;
+}
+
+.app-navigation {
+    justify-items: center;
+    gap: clamp(3px, 0.7dvh, 8px);
+    width: min(100%, 280px);
+}
+
+.app-instructions {
+    margin-top: clamp(7px, 1.2dvh, 13px);
+    padding: 8px 10px;
+}
+
+.app-instructions p {
+    margin: 2px 0;
+}
+
+.app-last-result {
+    margin-top: 7px;
+}
+
+/* Asset dimensions: original buttons are 256 x 88 */
+
+.application-main:not(.application-main--game) button:not(.round-button) {
+    width: min(100%, 224px);
+    min-width: 0;
+    min-height: 0;
+    height: auto;
+    aspect-ratio: 256 / 88;
+
+    padding: 11px 18px;
+
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    font-size: clamp(0.72rem, 0.95vw, 0.94rem);
+    line-height: 1.15;
+    white-space: normal;
+    text-align: center;
+
+    flex-shrink: 0;
+}
+
+.app-navigation button {
+    width: min(100%, 225px);
+}
+
+.app-actions {
+    row-gap: 6px;
+}
+
+.app-actions:not(.log-pagination) button {
+    flex: 0 1 206px;
+}
+
+/* Leaderboard: panel fits the actual browser viewport */
+
+.app-panel--log {
+    width: min(96vw, 1280px);
+    height: min(690px, calc(100dvh - 24px));
+    min-height: 0;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+
+    padding: clamp(10px, 2dvh, 20px) clamp(12px, 2.5vw, 34px);
+
+    border-width: clamp(15px, 2.5dvh, 25px);
+    border-image-width: clamp(15px, 2.5dvh, 25px);
+
+    overflow: hidden;
+}
+
+.app-panel--log .log-brand {
+    margin: 0 0 2px !important;
+    font-size: clamp(1.5rem, 2.7vw, 2.4rem);
+    line-height: 1.1;
+}
+
+.app-panel--log .log-screen-heading {
+    margin-bottom: 5px;
+}
+
+.log-tabs {
+    flex: 0 0 auto;
+    gap: 8px;
+    margin: 5px 0 8px;
+}
+
+.application-main .log-tabs button {
+    width: min(205px, 45%);
+}
+
+.log-description {
+    flex: 0 0 auto;
+    margin: 5px 0 12px;
+}
+
+.app-panel--log .remote-table-scroll {
+    flex: 0 1 auto;
+    min-height: 0;
+    max-height: min(37dvh, 360px);
+
+    overflow-x: auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.remote-table-scroll table {
+    border-spacing: 0 5px;
+}
+
+.remote-table-scroll th {
+    padding: 7px 12px;
+    white-space: nowrap;
+}
+
+.remote-table-scroll td {
+    padding: 9px 12px;
+    line-height: 1.25;
+}
+
+/* Removes the artificial highlight on every third row */
+
+.remote-table-scroll tbody tr:nth-child(n) td {
+    background: rgba(6, 22, 35, 0.9);
+}
+
+.remote-table-scroll tbody tr.is-current-player td {
+    background: rgba(142, 115, 55, 0.43);
+    color: #fff0c6;
+}
+
+.remote-table-scroll tbody tr.is-top-three td:first-child {
+    color: #ffe19b;
+}
+
+.ranking-you {
+    display: inline-block;
+    margin-left: 9px;
+    padding: 2px 6px;
+
+    border: 1px solid rgba(255, 221, 139, 0.38);
+    border-radius: 4px;
+
+    background: rgba(255, 205, 95, 0.13);
+    color: #ffe09b;
+
+    font-size: 0.64rem;
+    font-weight: 900;
+    vertical-align: middle;
+}
+
+.log-pagination {
+    flex: 0 0 auto;
+    margin-top: 6px;
+    gap: 12px;
+}
+
+.application-main .log-pagination button.round-button {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+
+    aspect-ratio: 1;
+    padding: 0;
+}
+
+.log-actions {
+    flex: 0 0 auto;
+    margin-top: 8px;
+}
+
+.application-main .log-actions button {
+    width: min(204px, 45%);
+    font-size: 0.78rem;
+}
+
+.app-panel--result {
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+}
+
+.app-panel--result .result-score output {
+    font-size: clamp(3.6rem, 8dvh, 5.3rem);
+}
+
+.result-details {
+    gap: 3px 14px;
+}
+
+.result-details p {
+    margin: 0;
+}
+
+/* Keep the Jungle Gaming logo in front of the frame */
+
+.app-watermark {
+    z-index: 3;
+    right: clamp(8px, 1.3vw, 20px);
+    bottom: clamp(8px, 1.5dvh, 20px);
+    width: clamp(75px, 8vw, 110px);
+}
+
+/* Game viewport: match the simulation's 16:9 aspect ratio */
+
+.application-main--game {
+    display: grid;
+    place-items: center;
+
+    width: 100%;
+    height: 100dvh;
+    min-height: 0;
+    padding: 0;
+
+    overflow: hidden;
+    background: #073a58;
+}
+
+.application-main--game .gameplay-shell {
+    display: grid;
+    place-items: center;
+
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    margin: 0;
+}
+
+.application-main--game .gameplay-stage {
+    position: relative;
+    isolation: isolate;
+
+    width: min(100vw, calc(100dvh * 16 / 9));
+    height: min(100dvh, calc(100vw * 9 / 16));
+    aspect-ratio: 16 / 9;
+
+    min-width: 0;
+    min-height: 0;
+
+    margin: auto;
+    overflow: hidden;
+
+    background: url("../../../assets/png/default/tiles/tile_73.png") center /
+        64px 64px repeat;
+}
+
+.application-main--game .gameplay-arena {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+
+    width: 100%;
+    height: 100%;
+
+    min-width: 0;
+    min-height: 0;
+
+    overflow: hidden;
+}
+
+/* Preserve native HUD sprite proportions */
+
+.hud-health-frame {
+    width: clamp(160px, 20vw, 256px);
+    height: auto;
+    aspect-ratio: 256 / 48;
+    flex-shrink: 0;
+}
+
+.hud-health-fill {
+    background-size: 100% 100%;
+}
+
+.hud-counter {
+    width: clamp(100px, 11vw, 160px);
+    height: auto;
+    aspect-ratio: 160 / 56;
+    flex-shrink: 0;
+
+    background-size: 100% 100%;
+    padding: 5px 11px;
+    white-space: nowrap;
+}
+
+/* Fix the pause/home icons disappearing on hover.
+   One image draws the ring; ::before draws the icon. */
+
+.application-main--game .gameplay-hud button.hud-round,
+.application-main--game .gameplay-hud button.hud-round:hover:not(:disabled),
+.application-main--game .gameplay-hud button.hud-round:active:not(:disabled) {
+    display: grid;
+    place-items: center;
+
+    width: clamp(40px, 4.6vw, 60px);
+    min-width: 0;
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 1;
+
+    padding: 0;
+
+    background-image: url("../../../assets/png/default/ui/controls/button_round_normal.png") !important;
+    background-position: center !important;
+    background-size: contain !important;
+    background-repeat: no-repeat !important;
+
+    color: transparent;
+    font-size: 0;
+    text-shadow: none;
+}
+
+.application-main--game .gameplay-hud button.hud-round:hover:not(:disabled) {
+    background-image: url("../../../assets/png/default/ui/controls/button_round_hover.png") !important;
+}
+
+.application-main--game .gameplay-hud button.hud-round::before {
+    content: "";
+    display: block;
+
+    width: 62%;
+    height: 62%;
+
+    background-image: url("../../../assets/png/default/ui/controls/icon_pause.png");
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    pointer-events: none;
+}
+
+.application-main--game .gameplay-hud button.hud-round--exit::before {
+    background-image: url("../../../assets/png/default/ui/controls/icon_home.png");
+}
+
+/* Reference-style controls also available to desktop mouse */
+
+.application-main--game .touch-controls {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    pointer-events: none;
+}
+
+.application-main--game .touch-controls-group {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: clamp(3px, 0.7vw, 8px);
+    pointer-events: none;
+}
+
+.application-main--game .touch-control {
+    flex: 0 0 auto;
+    width: clamp(44px, 4.8vw, 67px);
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 1;
+
+    background-size:
+        48% 48%,
+        contain;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    pointer-events: auto;
+    touch-action: none;
+}
+
+.application-main--game .touch-control:disabled {
+    opacity: 0.4;
+}
+
+.hud-health-fill--amber {
+    background-image: url("../../../assets/png/default/ui/hud/health_fill_amber.png");
+}
+
+.hud-health-fill--red {
+    background-image: url("../../../assets/png/default/ui/hud/health_fill_red.png");
+}
+
+/* Pause / Home: preserve original icon proportions */
+
+.application-main--game .gameplay-hud button.hud-round {
+    position: relative;
+    pointer-events: auto;
+
+    display: grid;
+    place-items: center;
+
+    width: clamp(42px, 4.6vw, 60px);
+    min-width: 0;
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 1;
+
+    padding: 0;
+    border: 0;
+
+    background: url("../../../assets/png/default/ui/controls/button_round_normal.png")
+        center / contain no-repeat !important;
+}
+
+.application-main--game .gameplay-hud button.hud-round:hover:not(:disabled) {
+    background: url("../../../assets/png/default/ui/controls/button_round_hover.png")
+        center / contain no-repeat !important;
+}
+
+.application-main--game .gameplay-hud button.hud-round:active:not(:disabled) {
+    background: url("../../../assets/png/default/ui/controls/button_round_pressed.png")
+        center / contain no-repeat !important;
+}
+
+/* Remove old pseudo-element icon */
+
+.application-main--game .gameplay-hud button.hud-round::before {
+    content: none !important;
+    display: none !important;
+}
+
+/* Real PNG icon, centered inside the round button */
+
+.application-main--game .gameplay-hud button.hud-round img {
+    display: block;
+
+    width: 48%;
+    height: 48%;
+
+    object-fit: contain;
+    pointer-events: none;
+
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5));
+}
+
+/* Regular leaderboard rows */
+
+.remote-table-scroll tbody tr:nth-child(3n):not(.is-current-player) td {
+    background: rgba(6, 22, 35, 0.9);
+}
+
+/* Highlight only the current player's entries */
+
+.remote-table-scroll tbody tr.is-current-player td {
+    background: linear-gradient(
+        90deg,
+        rgba(186, 151, 84, 0.32),
+        rgba(212, 180, 104, 0.38)
+    );
+
+    color: #fff1cd;
+
+    box-shadow:
+        inset 0 1px rgba(255, 224, 153, 0.14),
+        inset 0 -1px rgba(255, 224, 153, 0.14);
+}
+
+.remote-table-scroll tbody tr.is-current-player .log-rank {
+    color: #ffe39b;
+}
+
+/* HUD and controls stay within the actual game stage */
+
+.application-main--game .gameplay-hud {
+    position: absolute;
+    z-index: 7;
+    bottom: auto;
+    pointer-events: none;
+
+    top: clamp(8px, 1.6vw, 22px);
+    left: clamp(8px, 1.6vw, 22px);
+    right: clamp(8px, 1.6vw, 22px);
+
+    width: auto;
+    margin: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.application-main--game .hud-health,
+.application-main--game .hud-right {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.application-main--game .hud-right {
+    gap: clamp(5px, 0.8vw, 12px);
+}
+
+.application-main--game .touch-controls {
+    position: absolute;
+    z-index: 6;
+
+    left: clamp(8px, 1.7vw, 24px);
+    right: clamp(8px, 1.7vw, 24px);
+    bottom: clamp(8px, 1.7vw, 24px);
+
+    width: auto;
+    margin: 0;
+}
+
+/* Overlays remain above the HUD and gameplay controls. */
+
+.application-main--game .asset-overlay {
+    z-index: 8;
+}
+
+.application-main--game .pause-overlay {
+    z-index: 10;
+}
+
+/* Portrait layout: HUD can occupy two rows */
+
+@media (max-width: 600px) and (orientation: portrait) {
+    .application-main--game .gameplay-hud {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 5px;
+    }
+
+    .application-main--game .hud-right {
+        justify-content: flex-end;
+        flex-wrap: nowrap;
+    }
+}
+
+/* Responsive menu and captain's log */
+
+@media (max-height: 780px) {
+    .application-main--menu .app-brand h1 {
+        width: min(260px, 32dvh);
+    }
+
+    .app-panel--menu h2 {
+        font-size: 1.55rem;
+    }
+
+    .app-panel--menu .menu-intro {
+        margin-bottom: 5px;
+    }
+
+    .app-panel--menu .app-instructions {
+        padding: 6px 9px;
+    }
+
+    .app-panel--log .log-brand {
+        font-size: clamp(1.35rem, 3.5dvh, 2rem);
+    }
+}
+
+@media (max-width: 700px) {
+    .app-panel--log {
+        width: calc(100vw - 10px);
+        height: min(94dvh, 720px);
+        padding: 10px;
+        border-width: 16px;
+        border-image-width: 16px;
+    }
+
+    .app-panel--log .remote-table-scroll {
+        max-height: 34dvh;
+    }
+
+    .remote-table-scroll th,
+    .remote-table-scroll td {
+        padding: 9px 10px;
+        font-size: 0.76rem;
+    }
+
+    .log-tabs {
+        flex-wrap: nowrap;
+    }
+
+    .application-main .log-tabs button {
+        width: 49%;
+        padding: 9px;
+        font-size: 0.72rem;
+    }
+
+    .application-main .log-actions button {
+        width: min(44vw, 190px);
+        font-size: 0.68rem;
+    }
+
+    .app-watermark {
+        width: 73px;
+    }
+
+    .gameplay-hud {
+        left: 7px;
+        right: 7px;
+        gap: 4px;
+    }
+
+    .hud-health-frame {
+        width: clamp(115px, 27vw, 160px);
+    }
+
+    .hud-heart {
+        flex-basis: 28px;
+        width: 28px;
+        height: 28px;
+    }
+
+    .hud-counter {
+        width: clamp(78px, 15vw, 110px);
+        padding: 3px 6px;
+        gap: 4px;
+        font-size: 0.75rem;
+    }
+
+    .hud-icon {
+        width: 19px;
+        height: 19px;
+    }
+
+    .application-main--game .gameplay-hud button.hud-round {
+        width: 39px;
+    }
+}
+
+/* Portrait phones: two HUD rows prevent overlap */
+
+@media (max-width: 600px) and (orientation: portrait) {
+    .application-main--game .gameplay-shell {
+        width: 100%;
+        height: 100dvh;
+    }
+
+    .application-main--game .gameplay-stage {
+        width: 100vw;
+        height: 100dvh;
+        aspect-ratio: auto;
+    }
+
+    .gameplay-hud {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        row-gap: 6px;
+        align-items: center;
+    }
+
+    .hud-health {
+        grid-column: 1 / -1;
+    }
+
+    .hud-right {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+    }
+
+    .hud-health-frame {
+        width: min(190px, 48vw);
+    }
+
+    .hud-counter {
+        width: 92px;
+    }
+
+    .hud-counter .hud-icon {
+        display: block;
+    }
+
+    .touch-controls {
+        left: 5px;
+        right: 5px;
+        bottom: max(7px, env(safe-area-inset-bottom));
+        gap: 3px;
+    }
+
+    .application-main--game .touch-controls-group {
+        gap: 1px;
+    }
+
+    .application-main--game .touch-control {
+        width: clamp(43px, 12vw, 58px);
+        min-width: 0;
+        aspect-ratio: 1;
+    }
+
+    .pause-panel {
+        width: min(94%, 430px);
+    }
+}
+
+@media (max-width: 370px) {
+    .app-panel--log {
+        padding: 7px;
+    }
+
+    .application-main--game .touch-control {
+        width: 42px;
+    }
+
+    .hud-counter {
+        width: 79px;
+        font-size: 0.69rem;
+    }
+
+    .hud-health-frame {
+        width: 140px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .application-main *,
+    .application-main *::before {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
