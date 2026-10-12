@@ -1,71 +1,358 @@
 .gameplay-shell {
-    width: 100%;
-    max-width: 1280px;
+    width: min(100vw, calc(100dvh * 16 / 9));
+
+    margin: auto;
     min-width: 0;
-    margin-inline: auto;
-    box-sizing: border-box;
 }
 
-.gameplay-hud {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px 14px;
-    margin-bottom: 8px;
-}
+.gameplay-stage {
+    position: relative;
+    isolation: isolate;
 
-.gameplay-hud button {
-    min-height: 36px;
-    padding: 4px 12px;
-    cursor: pointer;
-}
+    width: 100%;
+    aspect-ratio: 16 / 9;
 
-.keyboard-hint {
-    margin: 8px 0;
-    font-size: 0.875rem;
-    line-height: 1.5;
+    overflow: hidden;
+
+    background: url("../../../assets/png/default/tiles/tile_73.png") center /
+        128px 128px repeat;
 }
 
 .gameplay-arena {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+
     width: 100%;
-    height: min(70vh, 720px);
-    min-height: 320px;
+    height: 100%;
     min-width: 0;
+    min-height: 0;
+
     overflow: hidden;
-    box-sizing: border-box;
 }
 
 .gameplay-arena canvas {
     display: block;
 }
 
+/* Gameplay HUD */
+
+.gameplay-hud {
+    position: absolute;
+    top: clamp(8px, 1.6vw, 22px);
+    left: clamp(8px, 1.6vw, 22px);
+    right: clamp(8px, 1.6vw, 22px);
+    bottom: auto;
+    z-index: 7;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    pointer-events: none;
+}
+
+.gameplay-hud__top {
+    position: absolute;
+    top: clamp(16px, 2vw, 28px);
+    left: clamp(16px, 2vw, 28px);
+    right: clamp(16px, 2vw, 28px);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    pointer-events: none;
+}
+
+.gameplay-hud__left,
+.gameplay-hud__right {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    pointer-events: none;
+}
+
+.gameplay-hud__right {
+    justify-content: flex-end;
+    margin-left: auto;
+}
+
+.gameplay-hud__actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    pointer-events: auto;
+}
+
+.gameplay-round-button {
+    width: clamp(48px, 4.4vw, 60px);
+    height: clamp(48px, 4.4vw, 60px);
+    min-width: clamp(48px, 4.4vw, 60px);
+    min-height: clamp(48px, 4.4vw, 60px);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    appearance: none;
+    pointer-events: auto;
+}
+
+.gameplay-round-button img,
+.gameplay-round-button svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+}
+
+.gameplay-counter {
+    height: clamp(44px, 4vw, 56px);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gameplay-counter img,
+.gameplay-counter svg {
+    height: 100%;
+    width: auto;
+    display: block;
+    object-fit: contain;
+}
+
+.hud-health {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+}
+
+.hud-heart {
+    display: block;
+    flex: 0 0 42px;
+
+    width: 42px;
+    height: 42px;
+
+    background: url("../../../assets/png/default/ui/hud/icon_heart.png")
+        center / contain no-repeat;
+
+    filter: drop-shadow(0 2px 4px #06354a99);
+}
+
+.hud-health-frame {
+    position: relative;
+
+    width: clamp(155px, 24vw, 256px);
+    aspect-ratio: 256 / 48;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: url("../../../assets/png/default/ui/hud/health_frame.png")
+        center / 100% 100% no-repeat;
+
+    filter: drop-shadow(0 3px 4px #052c3eaa);
+}
+
+.hud-health-fill {
+    position: absolute;
+    inset: 0;
+
+    background: url("../../../assets/png/default/ui/hud/health_fill_green.png")
+        center / 100% 100% no-repeat;
+
+    pointer-events: none;
+}
+
+.hud-health-frame output,
+.hud-max-health {
+    position: relative;
+    z-index: 1;
+
+    color: #fff9ea;
+    font-size: clamp(0.67rem, 1.25vw, 1rem);
+    font-weight: 900;
+    text-shadow: 0 2px 2px #09252b;
+}
+
+.hud-health-frame output {
+    margin-right: 3px;
+}
+
+.hud-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: clamp(5px, 1.5vw, 15px);
+    min-width: 0;
+}
+
+.hud-counter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+
+    width: clamp(95px, 11vw, 158px);
+    height: clamp(36px, 4.5vw, 56px);
+
+    padding: 6px 12px;
+
+    background: url("../../../assets/png/default/ui/hud/counter_panel.png")
+        center / 100% 100% no-repeat;
+
+    color: #fff4d5;
+
+    font-size: clamp(0.76rem, 1.5vw, 1.3rem);
+    font-weight: 900;
+
+    text-shadow: 0 2px 2px #07202a;
+    filter: drop-shadow(0 3px 4px #052c3e99);
+}
+
+.hud-counter output {
+    color: #fff4d5;
+    font-weight: 900;
+}
+
+.hud-icon {
+    flex: 0 0 auto;
+
+    width: clamp(19px, 2.6vw, 32px);
+    height: clamp(19px, 2.6vw, 32px);
+
+    background-position: center;
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
+.hud-icon--score {
+    background-image: url("../../../assets/png/default/ui/hud/icon_score.png");
+}
+
+.hud-icon--time {
+    background-image: url("../../../assets/png/default/ui/hud/icon_time.png");
+}
+
+.hud-formatted-time {
+    font-variant-numeric: tabular-nums;
+}
+
+/* HUD round buttons override shared menu buttons */
+
+.application-main--game .gameplay-hud button.hud-round {
+    pointer-events: auto;
+    cursor: pointer;
+
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+
+    width: clamp(39px, 4.8vw, 62px);
+    min-width: 0;
+    height: clamp(39px, 4.8vw, 62px);
+    min-height: 0;
+
+    padding: 0;
+    border: 0;
+
+    background:
+        url("../../../assets/png/default/ui/controls/icon_pause.png") center /
+            48% 48% no-repeat,
+        url("../../../assets/png/default/ui/controls/button_round_normal.png")
+            center / contain no-repeat;
+
+    color: transparent;
+    font-size: 0;
+    text-shadow: none;
+}
+
+.application-main--game .gameplay-hud button.hud-round--exit {
+    background-image:
+        url("../../../assets/png/default/ui/controls/icon_home.png"),
+        url("../../../assets/png/default/ui/controls/button_round_normal.png");
+}
+
+.application-main--game .gameplay-hud button.hud-round:hover {
+    background-image:
+        url("../../../assets/png/default/ui/controls/icon_pause.png"),
+        url("../../../assets/png/default/ui/controls/button_round_hover.png");
+
+    color: transparent;
+    transform: scale(1.04);
+}
+
+.application-main--game .gameplay-hud button.hud-round--exit:hover {
+    background-image:
+        url("../../../assets/png/default/ui/controls/icon_home.png"),
+        url("../../../assets/png/default/ui/controls/button_round_hover.png");
+}
+
+/* Touch navigation and cannons */
+
 .touch-controls {
+    position: absolute;
+    z-index: 6;
+
+    left: clamp(6px, 2vw, 26px);
+    right: clamp(6px, 2vw, 26px);
+    bottom: clamp(6px, 2vw, 24px);
+
     display: none;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    pointer-events: none;
 }
 
 .touch-controls-group {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
     gap: 8px;
+
     min-width: 0;
+    pointer-events: none;
 }
 
 .touch-control {
+    --control-icon: url("../../../assets/png/default/ui/controls/icon_forward.png");
+
+    position: relative;
+
+    display: grid;
+    place-items: center;
+
+    flex: 0 0 auto;
+
+    width: clamp(50px, 6vw, 70px);
     min-width: 0;
-    min-height: 58px;
-    padding: 10px 6px;
 
-    border: 1px solid #64748b;
-    border-radius: 8px;
+    height: clamp(50px, 6vw, 70px);
+    min-height: 0;
 
-    background: #162c3e;
-    color: #ffffff;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
 
-    font: inherit;
-    font-size: 0.9rem;
-    font-weight: 600;
-    line-height: 1.2;
+    background:
+        var(--control-icon) center / 47% 47% no-repeat,
+        url("../../../assets/png/default/ui/controls/button_round_normal.png")
+            center / contain no-repeat;
 
+    color: transparent;
+    font-size: 0;
+    line-height: 0;
+
+    pointer-events: auto;
     cursor: pointer;
 
     touch-action: none;
@@ -74,50 +361,318 @@
     -webkit-touch-callout: none;
 }
 
-.touch-control:active,
-.touch-control[data-pressed="true"] {
-    background: #2563eb;
+.touch-control[aria-label="Rotate left"] {
+    --control-icon: url("../../../assets/png/default/ui/controls/icon_turn_left.png");
 }
 
-.touch-control:focus-visible,
-.gameplay-hud button:focus-visible {
-    outline: 3px solid #facc15;
-    outline-offset: 2px;
+.touch-control[aria-label="Move forward"] {
+    --control-icon: url("../../../assets/png/default/ui/controls/icon_forward.png");
+}
+
+.touch-control[aria-label="Rotate right"] {
+    --control-icon: url("../../../assets/png/default/ui/controls/icon_turn_right.png");
+}
+
+.touch-control[aria-label="Fire left broadside"] {
+    --control-icon: url("../../../assets/png/default/ui/controls/icon_fire_left.png");
+}
+
+.touch-control[aria-label="Fire front cannon"] {
+    --control-icon: url("../../../assets/png/default/ui/controls/icon_fire_front.png");
+}
+
+.touch-control[aria-label="Fire right broadside"] {
+    --control-icon: url("../../../assets/png/default/ui/controls/icon_fire_right.png");
+}
+
+.touch-control:active,
+.touch-control[data-pressed="true"] {
+    background-image:
+        var(--control-icon),
+        url("../../../assets/png/default/ui/controls/button_round_pressed.png");
 }
 
 .touch-control:disabled {
-    opacity: 0.45;
+    opacity: 0.43;
     cursor: not-allowed;
 }
 
-@media (any-pointer: coarse) {
-    .gameplay-arena {
-        height: min(42dvh, 440px);
-        min-height: 220px;
-    }
+.touch-control:focus-visible {
+    outline: 3px solid #ffe89d;
+    outline-offset: 3px;
+}
 
+/* Pause overlay */
+
+.pause-overlay {
+    position: absolute;
+    z-index: 10;
+    inset: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 15px;
+    background: #03162475;
+}
+
+.pause-panel {
+    width: min(540px, 94%);
+    min-height: 380px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+
+    padding: 40px 38px;
+    border: 28px solid transparent;
+
+    border-image-source: url("../../../assets/png/default/ui/menu/panel_menu.png");
+    border-image-slice: 40 32 fill;
+    border-image-width: 28px;
+    border-image-repeat: stretch;
+
+    color: #ffe6aa;
+    text-align: center;
+    filter: drop-shadow(0 14px 24px #03101acc);
+}
+
+.pause-panel h2 {
+    margin: 0 0 4px;
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
+    text-transform: uppercase;
+}
+
+.pause-panel p {
+    margin: 0 0 16px;
+    color: #e4d8c4;
+}
+
+.pause-panel button {
+    width: min(100%, 280px);
+    min-height: 60px;
+}
+
+/* Asset loading and failure */
+
+.asset-overlay {
+    position: absolute;
+    z-index: 8;
+    inset: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 15px;
+    background: #031725bc;
+}
+
+.asset-overlay [role="progressbar"] {
+    padding: 20px 26px;
+
+    background: #0b253ce8;
+    border: 2px solid #bf843e;
+    border-radius: 12px;
+
+    color: #ffe3a2;
+    font-size: 1.05rem;
+    font-weight: 900;
+
+    text-align: center;
+}
+
+.asset-error-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+
+    width: min(480px, 94%);
+    padding: 28px;
+
+    border: 2px solid #bf843e;
+    border-radius: 12px;
+
+    background: #102b40;
+    color: #fff1d0;
+    text-align: center;
+}
+
+.asset-error-panel h2 {
+    margin: 0;
+}
+
+.asset-error-panel p {
+    margin: 6px 0 12px;
+}
+
+.asset-error-panel button {
+    min-width: 190px;
+}
+
+/* Accessible keyboard guidance */
+
+.keyboard-hint {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+
+    margin: -1px;
+    padding: 0;
+
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Touch-enabled devices */
+
+@media (any-pointer: coarse) {
     .touch-controls {
-        display: grid;
-        gap: 8px;
-        margin-top: 10px;
-        width: 100%;
-        box-sizing: border-box;
+        display: flex;
     }
 }
 
-@media (max-width: 480px) {
+/* Small landscape layouts */
+
+@media (max-width: 850px) {
     .gameplay-hud {
-        gap: 6px 10px;
-        font-size: 0.9rem;
+        top: 6px;
+        left: 7px;
+        right: 7px;
+        gap: 5px;
     }
 
-    .keyboard-hint {
-        font-size: 0.78rem;
+    .hud-heart {
+        flex-basis: 27px;
+        width: 27px;
+        height: 27px;
+    }
+
+    .hud-health-frame {
+        width: clamp(110px, 24vw, 175px);
+    }
+
+    .hud-right {
+        gap: 4px;
+    }
+
+    .hud-counter {
+        width: clamp(68px, 14vw, 114px);
+        height: 37px;
+        padding: 3px 6px;
+        gap: 3px;
+        font-size: 0.72rem;
+    }
+
+    .hud-icon {
+        width: 19px;
+        height: 19px;
+    }
+
+    .application-main--game .gameplay-hud button.hud-round {
+        width: 38px;
+        height: 38px;
+    }
+
+    .touch-controls {
+        left: 6px;
+        right: 6px;
+        bottom: 7px;
+    }
+
+    .touch-controls-group {
+        gap: 3px;
     }
 
     .touch-control {
-        font-size: 0.8rem;
-        min-height: 56px;
-        padding: 8px 4px;
+        width: clamp(42px, 7vw, 55px);
+        height: clamp(42px, 7vw, 55px);
+    }
+}
+
+/* Portrait phones */
+
+@media (max-width: 600px) and (orientation: portrait) {
+    .gameplay-shell {
+        width: 100%;
+    }
+
+    .gameplay-stage {
+        aspect-ratio: auto;
+        height: min(88dvh, 780px);
+        min-height: 480px;
+    }
+
+    .gameplay-hud {
+        top: 12px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 5px;
+    }
+
+    .hud-health-frame {
+        width: clamp(105px, 29vw, 150px);
+    }
+
+    .hud-counter {
+        width: 63px;
+        height: 37px;
+    }
+
+    .hud-counter .hud-icon {
+        display: none;
+    }
+
+    .hud-formatted-time {
+        font-size: 0.7rem;
+    }
+
+    .touch-control {
+        width: clamp(43px, 13vw, 58px);
+        height: clamp(43px, 13vw, 58px);
+    }
+
+    .pause-panel {
+        min-height: 330px;
+        padding: 22px 16px;
+        border-width: 20px;
+        border-image-width: 20px;
+    }
+
+    .pause-panel button {
+        min-height: 53px;
+    }
+}
+
+@media (max-width: 375px) {
+    .hud-heart {
+        display: none;
+    }
+
+    .hud-counter {
+        width: 58px;
+        font-size: 0.67rem;
+    }
+
+    .touch-controls-group {
+        gap: 1px;
+    }
+
+    .touch-control {
+        width: 43px;
+        height: 43px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gameplay-hud button,
+    .touch-control {
+        transition: none;
     }
 }

@@ -97,6 +97,7 @@ export class GameSimulation {
 
     public start(): void {
         // Restaura o estado inicial do jogador.
+
         this.player.x = 120;
         this.player.y = 120;
         this.player.rotation = 0;
@@ -198,7 +199,36 @@ export class GameSimulation {
             return;
         }
 
-        // 5. Gera novos inimigos.
+        // 4. Movimenta os inimigos sobreviventes e processa seus ataques.
+        const enemyUpdate = updateEnemies(
+            this.enemies,
+            this.player,
+            this.island,
+            this.config,
+            stepSeconds,
+            this.nextProjectileId,
+        );
+
+        this.enemies = enemyUpdate.enemies;
+
+        // 5. Aplica o dano das colisões dos Chasers.
+        this.player.health = Math.max(
+            0,
+            this.player.health -
+                enemyUpdate.chaserCollisions *
+                    this.config.chaserCollisionDamage,
+        );
+
+        if (this.player.health === 0) {
+            this.stop("destroyed");
+            return;
+        }
+
+        // 6. Adiciona os projéteis inimigos para o próximo frame.
+        this.projectiles.push(...enemyUpdate.projectiles);
+        this.nextProjectileId += enemyUpdate.projectiles.length;
+
+        // 7. Gera novos inimigos; eles serão atualizados no próximo frame.
         this.enemySpawnTimerSeconds += stepSeconds;
 
         while (
@@ -224,35 +254,6 @@ export class GameSimulation {
                     this.nextEnemyType === "chaser" ? "shooter" : "chaser";
             }
         }
-
-        // 6. Movimenta os inimigos sobreviventes e processa seus ataques.
-        const enemyUpdate = updateEnemies(
-            this.enemies,
-            this.player,
-            this.island,
-            this.config,
-            stepSeconds,
-            this.nextProjectileId,
-        );
-
-        this.enemies = enemyUpdate.enemies;
-
-        // 7. Aplica o dano das colisões dos Chasers.
-        this.player.health = Math.max(
-            0,
-            this.player.health -
-                enemyUpdate.chaserCollisions *
-                    this.config.chaserCollisionDamage,
-        );
-
-        if (this.player.health === 0) {
-            this.stop("destroyed");
-            return;
-        }
-
-        // 8. Adiciona os projéteis inimigos para o próximo frame.
-        this.projectiles.push(...enemyUpdate.projectiles);
-        this.nextProjectileId += enemyUpdate.projectiles.length;
     }
 
     public pause(): void {

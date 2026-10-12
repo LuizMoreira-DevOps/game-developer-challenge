@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 
+import jungleLogo from "../assets/logo_jungle_gaming.svg";
+
 import { PixiGameCanvas } from "./game/rendering/PixiGameCanvas";
 import type { GameSimulationSnapshot } from "./game/core/GameSimulation";
+
 import {
     abandonActiveMatch,
     beginMatch,
@@ -14,18 +17,18 @@ import {
     type MatchOptions,
     type MatchSession,
 } from "./game/state/matchPersistence";
+
 import { OptionsScreen } from "./game/ui/OptionsScreen";
 import { ResultScreen } from "./game/ui/ResultScreen";
-
-import "./game/ui/application-ui.css";
-
 import { RankingScreen, HistoryScreen } from "./game/ui/RemoteScreens";
 
 import { isMatchConfirmed } from "./game/api/submissionReceipts";
-
 import { readPendingMatches } from "./game/api/pendingMatches";
-
 import { usePendingMatchSync } from "./game/api/usePendingMatchSync";
+
+import "./game/ui/application-ui.css";
+
+import "./game/ui/visual-refinement.css";
 
 type Screen = "menu" | "options" | "game" | "result" | "ranking" | "history";
 
@@ -52,8 +55,6 @@ function App() {
     } = usePendingMatchSync();
 
     useEffect(() => {
-        // Recover a match left active by a previous reload/crash.
-        // This is idempotent under React Strict Mode.
         abandonActiveMatch();
 
         const handlePageHide = () => {
@@ -78,7 +79,6 @@ function App() {
 
     const saveOptions = (nextOptions: MatchOptions) => {
         saveMatchOptions(nextOptions);
-
         setOptions(nextOptions);
         setScreen("menu");
     };
@@ -98,7 +98,6 @@ function App() {
 
     const exitMatch = () => {
         abandonActiveMatch();
-
         setSession(null);
         setScreen("menu");
     };
@@ -120,15 +119,24 @@ function App() {
             : "unknown";
 
     return (
-        <main className="application-main">
-            <h1>Pirate Battle</h1>
+        <main className={`application-main application-main--${screen}`}>
+            {screen === "menu" ? (
+                <header className="app-brand">
+                    <h1>Pirate Battle</h1>
+                    <p>THE HIGH SEAS AWAIT</p>
+                </header>
+            ) : (
+                <h1 className="visually-hidden">Pirate Battle</h1>
+            )}
 
             {screen === "menu" && (
                 <section
-                    className="app-panel"
+                    className="app-panel app-panel--menu"
                     aria-labelledby="main-menu-heading"
                 >
                     <h2 id="main-menu-heading">Main Menu</h2>
+
+                    <p className="menu-intro">Your ship awaits, Captain.</p>
 
                     <nav
                         className="app-navigation"
@@ -167,19 +175,16 @@ function App() {
                         <h3>Gameplay Controls</h3>
 
                         <p>
-                            W / ↑: Forward · A / ←: Rotate left · D / →: Rotate
+                            W / ↑ Forward · A / ← Rotate left · D / → Rotate
                             right
                         </p>
 
                         <p>
-                            Space / F: Front cannon · Q: Left broadside · E:
-                            Right broadside
+                            Space / F Front cannon · Q Left broadside · E Right
+                            broadside
                         </p>
 
-                        <p>
-                            Touch: use the movement and cannon buttons during
-                            gameplay.
-                        </p>
+                        <p>Touch controls are available during gameplay.</p>
                     </div>
 
                     {lastResult && (
@@ -187,10 +192,11 @@ function App() {
                             <h3>Last Completed Match</h3>
 
                             <p>
-                                Score: {lastResult.score} ·
+                                <strong>{lastResult.score} points</strong>
+                                {" · "}
                                 {lastResult.reason === "time"
-                                    ? " Time's up"
-                                    : " Ship destroyed"}
+                                    ? "Time's up"
+                                    : "Ship destroyed"}
                             </p>
 
                             <button
@@ -236,7 +242,9 @@ function App() {
             {screen === "ranking" && (
                 <RankingScreen
                     options={options}
+                    playerId={player.id}
                     onMainMenu={() => setScreen("menu")}
+                    onHistory={() => setScreen("history")}
                 />
             )}
 
@@ -244,6 +252,15 @@ function App() {
                 <HistoryScreen
                     playerId={player.id}
                     onMainMenu={() => setScreen("menu")}
+                    onRanking={() => setScreen("ranking")}
+                />
+            )}
+
+            {screen !== "game" && (
+                <img
+                    className="app-watermark"
+                    src={jungleLogo}
+                    alt="Jungle Gaming"
                 />
             )}
         </main>
