@@ -288,6 +288,10 @@ export function HistoryScreen({
 
             <p className="log-description">Your recent battles</p>
 
+            <p className="history-scroll-hint">
+                Swipe sideways on the table to see all match details.
+            </p>
+
             {query.isPending && <p role="status">Loading match history...</p>}
 
             {query.isError && (

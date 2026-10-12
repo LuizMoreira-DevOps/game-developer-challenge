@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import jungleLogo from "../assets/logo_jungle_gaming.svg";
 
@@ -33,6 +33,9 @@ import "./game/ui/visual-refinement.css";
 type Screen = "menu" | "options" | "game" | "result" | "ranking" | "history";
 
 function App() {
+    const playButtonRef = useRef<HTMLButtonElement>(null);
+    const focusPlayOnReturnRef = useRef(false);
+
     const [screen, setScreen] = useState<Screen>("menu");
 
     const [options, setOptions] = useState<MatchOptions>(() =>
@@ -68,6 +71,13 @@ function App() {
         };
     }, []);
 
+    useEffect(() => {
+        if (screen === "menu" && focusPlayOnReturnRef.current) {
+            playButtonRef.current?.focus();
+            focusPlayOnReturnRef.current = false;
+        }
+    }, [screen]);
+
     const startNewMatch = () => {
         const nextSession = createMatchSession(options);
 
@@ -97,6 +107,7 @@ function App() {
     };
 
     const exitMatch = () => {
+        focusPlayOnReturnRef.current = true;
         abandonActiveMatch();
         setSession(null);
         setScreen("menu");
@@ -142,7 +153,11 @@ function App() {
                         className="app-navigation"
                         aria-label="Main navigation"
                     >
-                        <button type="button" onClick={startNewMatch}>
+                        <button
+                            type="button"
+                            ref={playButtonRef}
+                            onClick={startNewMatch}
+                        >
                             Play
                         </button>
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { Application, Assets, Container, Sprite, TilingSprite } from "pixi.js";
 
@@ -89,6 +89,11 @@ export function PixiGameCanvas({
 }: PixiGameCanvasProps) {
     const containerRef = useRef<HTMLDivElement>(null);
 
+    const pauseButtonRef = useRef<HTMLButtonElement>(null);
+    const resumeButtonRef = useRef<HTMLButtonElement>(null);
+    const mainMenuButtonRef = useRef<HTMLButtonElement>(null);
+    const previousFocusRef = useRef<HTMLElement | null>(null);
+
     const touchInputRef = useRef<TouchInput | null>(null);
 
     const onCompleteRef = useRef(onComplete);
@@ -113,6 +118,51 @@ export function PixiGameCanvas({
         pause: () => void;
         resume: () => void;
     } | null>(null);
+
+    const pauseOpen =
+        hud.isRunning && hud.isPaused && loadState.phase === "ready";
+
+    useLayoutEffect(() => {
+        if (!pauseOpen) {
+            if (previousFocusRef.current) {
+                const target =
+                    pauseButtonRef.current ?? previousFocusRef.current;
+                if (target.isConnected) {
+                    target.focus();
+                }
+                previousFocusRef.current = null;
+            }
+            return;
+        }
+
+        resumeButtonRef.current?.focus();
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                event.preventDefault();
+                event.stopPropagation();
+                controlsRef.current?.resume();
+            } else if (event.key === "Tab") {
+                event.preventDefault();
+                const resume = resumeButtonRef.current;
+                const menu = mainMenuButtonRef.current;
+                const next =
+                    document.activeElement === resume
+                        ? menu
+                        : document.activeElement === menu
+                          ? resume
+                          : event.shiftKey
+                            ? menu
+                            : resume;
+                next?.focus();
+            }
+        };
+
+        document.addEventListener("keydown", handleKeyDown, true);
+        return () => {
+            document.removeEventListener("keydown", handleKeyDown, true);
+        };
+    }, [pauseOpen]);
 
     useEffect(() => {
         onCompleteRef.current = onComplete;
@@ -353,6 +403,12 @@ export function PixiGameCanvas({
                 if (!snapshot.isRunning || snapshot.isPaused) {
                     return;
                 }
+
+                // Capture before React removes Pause or disables touch controls.
+                previousFocusRef.current =
+                    document.activeElement instanceof HTMLElement
+                        ? document.activeElement
+                        : null;
 
                 runtime.pause();
                 keyboard.stop();
@@ -651,6 +707,7 @@ export function PixiGameCanvas({
                                 <button
                                     type="button"
                                     className="hud-round hud-round--pause"
+                                    ref={pauseButtonRef}
                                     aria-label="Pause"
                                     onClick={() => controlsRef.current?.pause()}
                                 >
@@ -738,33 +795,36 @@ export function PixiGameCanvas({
                     disabled={touchDisabled}
                 />
 
-                {hud.isRunning &&
-                    hud.isPaused &&
-                    loadState.phase === "ready" && (
-                        <div className="pause-overlay">
-                            <section
-                                className="pause-panel"
-                                aria-labelledby="pause-heading"
+                {pauseOpen && (
+                    <div className="pause-overlay">
+                        <section
+                            className="pause-panel"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="pause-heading"
+                        >
+                            <h2 id="pause-heading">Paused</h2>
+
+                            <p>Ready when you are.</p>
+
+                            <button
+                                type="button"
+                                ref={resumeButtonRef}
+                                onClick={() => controlsRef.current?.resume()}
                             >
-                                <h2 id="pause-heading">Paused</h2>
+                                Resume
+                            </button>
 
-                                <p>Ready when you are.</p>
-
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        controlsRef.current?.resume()
-                                    }
-                                >
-                                    Resume
-                                </button>
-
-                                <button type="button" onClick={onExit}>
-                                    Main Menu
-                                </button>
-                            </section>
-                        </div>
-                    )}
+                            <button
+                                type="button"
+                                ref={mainMenuButtonRef}
+                                onClick={onExit}
+                            >
+                                Main Menu
+                            </button>
+                        </section>
+                    </div>
+                )}
             </div>
 
             <p className="keyboard-hint" aria-label="Keyboard controls">

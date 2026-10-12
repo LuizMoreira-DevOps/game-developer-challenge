@@ -177,7 +177,7 @@ The performance configuration starts its own local preview server at:
 npx playwright test --config=playwright.performance.config.ts three-minute.profile.ts --reporter=line
 ```
 
-The automated profile configures a 180-second match and a 1-second enemy spawn interval.
+The automated profile configures a 180-second match. `SPAWN_INTERVAL_SECONDS` selects the enemy spawn interval (integer 1â€“30), with **5 seconds as the default**. Use 1 second for increased load. The interval is included in the JSON report and attachment filename.
 
 It samples browser performance diagnostics and JavaScript heap usage.
 
@@ -321,3 +321,22 @@ Each optimization should be supported by before/after measurements using the sam
 - [Architecture](../ARCHITECTURE.md)
 - [Setup and operations](SETUP.md)
 - [Original challenge](../README.CHALLENGE.md)
+
+## Latest profiling attempt: 2026-10-12
+
+Both 5-second and 1-second spawn runs were attempted after a successful build.
+Both stopped at browser launch because the required Chromium executable was
+unavailable; browser installation returned an invalid/truncated ZIP. **No new
+FPS, frame-time or heap measurements were produced.** Historical measurements
+above remain historical and do not validate the current changes.
+
+Reproduce both loads in PowerShell, preserving separate result directories:
+
+```powershell
+npm run build
+$env:SPAWN_INTERVAL_SECONDS = "5"
+npx playwright test --config=playwright.performance.config.ts three-minute.profile.ts --reporter=line --output=test-results-performance-5s
+$env:SPAWN_INTERVAL_SECONDS = "1"
+npx playwright test --config=playwright.performance.config.ts three-minute.profile.ts --reporter=line --output=test-results-performance-1s
+Remove-Item Env:SPAWN_INTERVAL_SECONDS
+```

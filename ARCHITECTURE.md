@@ -143,7 +143,7 @@ Important default values include:
 | Enemy projectile damage    |                     10 |
 | Chaser collision damage    |                     25 |
 
-The Options screen exposes match duration (60–180 seconds) and spawn interval (1–30 seconds).
+The Options screen exposes match duration (60â€“180 seconds) and spawn interval (1â€“30 seconds).
 
 `createMatchSession()` combines these values with the default gameplay configuration and freezes the resulting configuration snapshot.
 
@@ -172,7 +172,7 @@ EnemySystem samples candidate positions within the arena and rejects positions t
 
 The spawn routine allows up to 100 attempts before returning no enemy.
 
-The implementation uses injected randomness for deterministic simulation tests. Spatial distribution is presently uniform; there is no separate configurable distribution strategy.
+The implementation uses injected randomness for deterministic simulation tests. `enemySpawnDistribution` selects `uniform` (the unchanged default sampler) or `perimeter` (rejection sampling within a border band covering 10% of the smaller usable arena dimension). Both use the same island, arena and player-distance validation and the same 100-attempt limit. This configuration is code-only; the Options screen still exposes two fields.
 
 ## 5. Movement and collision detection
 
@@ -315,7 +315,7 @@ Responsive layout and input coordinate mapping are covered by Playwright tests.
 
 The current implementation uses a fixed 1280 x 720 simulation world. On viewports with different proportions, the visible world may be centered with unused surrounding space depending on the renderer and CSS configuration.
 
-Dynamic devicePixelRatio changes after initialization and all device orientations require additional device-level verification.
+Portrait and landscape are both target layouts. The mobile accessibility test covers 390 Ã— 740, 740 Ã— 390 and 320 Ã— 568 in one match. Browser/device validation is still pending; neither orientation is declared verified by this change. See [ACCESSIBILITY.md](ACCESSIBILITY.md). Dynamic devicePixelRatio changes after initialization require additional device-level verification.
 
 ## 9. Resource lifecycle
 
@@ -598,11 +598,11 @@ A new profiling run is required after material visual changes.
 - 60 FPS remains an optimization target.
 - Historic profiling lacks recorded CPU, GPU and exact display resolution.
 - The current simulation has one blocking island.
-- Uniform enemy spawn sampling is not independently configurable.
+- Enemy spawn distribution is configured in code; the Options screen exposes only duration and spawn interval.
 - The mock API persists per browser rather than using a shared server.
-- Network scenario delays are fixed rather than randomized.
+- `latency-variable` uses a deterministic 200â€“1,200 ms sequence with fixed seed 42. Replay requires the same request order; concurrent arrival order is not guaranteed.
 - Some accessibility details, including dialog focus behavior, require further validation.
-- Additional mobile orientation and DPR verification is needed.
+- Mobile orientation verification is tracked in [ACCESSIBILITY.md](ACCESSIBILITY.md); dynamic DPR verification is still needed.
 - Browser-local mock data does not provide cross-device consistency.
 - Asset licensing must be confirmed for redistribution beyond the supplied challenge context.
 - CI artifact publication is a separate delivery concern until configured.

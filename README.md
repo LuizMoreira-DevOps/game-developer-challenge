@@ -136,10 +136,10 @@ The gameplay interface also provides touch controls for movement, rotation and f
 
 The Options screen exposes:
 
-| Option               |    Default | Supported range |
-| -------------------- | ---------: | --------------: |
-| Match duration       | 90 seconds |  60–180 seconds |
-| Enemy spawn interval |  5 seconds |    1–30 seconds |
+| Option               |    Default |  Supported range |
+| -------------------- | ---------: | ---------------: |
+| Match duration       | 90 seconds | 60â€“180 seconds |
+| Enemy spawn interval |  5 seconds |   1â€“30 seconds |
 
 Values must be whole numbers within the supported ranges.
 
@@ -203,6 +203,7 @@ Supported scenarios:
 | `success`                 | Normal mock responses                                      |
 | `empty`                   | Empty ranking/history results                              |
 | `latency`                 | Fixed 700 ms response delay                                |
+| `latency-variable`        | Deterministic 200â€“1,200 ms delays; fixed seed 42         |
 | `out-of-order`            | Page 1 delayed 900 ms; other pages delayed 60 ms           |
 | `timeout`                 | Delay beyond Axios's 6-second timeout                      |
 | `network-error`           | Simulated network failure                                  |
@@ -214,6 +215,29 @@ Supported scenarios:
 | `post-timeout-after-save` | Match is saved, but its response exceeds the Axios timeout |
 
 Replace `ranking-error` with the desired scenario.
+
+### Variable latency (fixed seed 42)
+
+Select `latency-variable` and reload to restart the deterministic sequence:
+
+```javascript
+localStorage.setItem("pirate-battle:mock-scenario:v1", "latency-variable");
+location.reload();
+```
+
+A 32-bit LCG assigns integer delays from 200 through 1,200 ms, starting with
+452, 288, 777 and 422 ms for seed `42`. The seed is fixed in
+`src/mocks/networkScenarios.ts` (`VARIABLE_LATENCY_SEED`); no `Math.random()` is
+used. Each valid ranking, history or submission request consumes one value
+synchronously before awaiting its delay. Successful mock responses expose
+`X-Mock-Delay-Ms` and `X-Mock-Latency-Seed` for reproducible test assertions.
+
+Reload, or call the module's `setNetworkScenario` / `resetNetworkScenario`, to
+restart the sequence. Direct localStorage changes should be followed by reload.
+Replay the same ordered requests, awaiting each response before sending the
+next, in a clean browser context without pending submissions or background
+refetches. Concurrent request arrival order and wall-clock scheduling are not
+guaranteed by the seed; use `out-of-order` for its explicit page-order scenario.
 
 ### Restore normal network behavior
 
@@ -311,6 +335,25 @@ Profile 180 seconds of active gameplay:
 npx playwright test --config=playwright.performance.config.ts three-minute.profile.ts --reporter=line
 ```
 
+The three-minute profile uses `SPAWN_INTERVAL_SECONDS`, defaulting to **5**.
+It accepts integers from 1 through 30 and records the interval in the JSON
+attachment and filename. Compare normal and increased load using PowerShell:
+
+```powershell
+npm run build
+
+$env:SPAWN_INTERVAL_SECONDS = "5"
+npx playwright test --config=playwright.performance.config.ts three-minute.profile.ts --reporter=line --output=test-results-performance-5s
+
+$env:SPAWN_INTERVAL_SECONDS = "1"
+npx playwright test --config=playwright.performance.config.ts three-minute.profile.ts --reporter=line --output=test-results-performance-1s
+
+Remove-Item Env:SPAWN_INTERVAL_SECONDS
+```
+
+Separate output directories preserve both runs. Compare FPS, p95 frame time,
+entity/projectile counts and heap samples only on the same browser/machine.
+
 Profile memory and canvas cleanup across five completed matches:
 
 ```bash
@@ -357,7 +400,7 @@ The published build must be smoke-tested after significant changes.
 - Previously recorded performance measurements are below the 60 FPS target.
 - Fresh profiling measurements are required after major rendering changes.
 - Ranking and history are isolated per browser, not shared between users.
-- The mock latency scenarios use fixed, reproducible delays rather than configurable random latency.
+- Variable mock latency is deterministic with fixed seed 42; arbitrary concurrent response order is not guaranteed.
 - Further mobile accessibility and responsive-layout verification may be required.
 - Asset rights remain subject to the terms under which the original challenge materials were supplied.
 
@@ -368,3 +411,14 @@ The visual and audio materials under `assets/` were supplied with the Jungle Gam
 They include spritesheets, individual sprites, tiles, interface components, reference artwork and WAV sound effects.
 
 No independent commercial-use grant is asserted by this README. Confirm the applicable license or obtain permission before redistributing these materials outside the challenge context.
+
+## Enemy spawn distribution
+
+`GameplayConfig.enemySpawnDistribution` accepts `"uniform"` (default) and
+`"perimeter"`. Uniform keeps the original sampling unchanged. Perimeter uses
+rejection sampling within a border band whose width is 10% of the smaller
+usable arena dimension (after subtracting the enemy radius at both ends).
+Both enforce arena limits, island clearance and the same minimum player
+distance. After 100 unsuccessful attempts they return no enemy rather than
+spawning in an invalid position. Configure this in code; the menu still exposes
+only match duration and spawn interval.
