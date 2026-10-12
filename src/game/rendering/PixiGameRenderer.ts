@@ -1,22 +1,50 @@
 import { Graphics, Sprite, type Container, type Texture } from "pixi.js";
 
 import type { GameplayConfig } from "../config/gameplayConfig";
-
 import type { GameRenderer } from "../core/GameRuntime";
-
 import type { GameSimulationSnapshot } from "../core/GameSimulation";
 
 const SHIP_ROTATION_OFFSET = Math.PI;
 const HIT_FLASH_MS = 150;
 const EXPLOSION_DURATION_MS = 520;
 
+type DamageStage = 0 | 1 | 2 | 3;
+
+interface DamageAssetTextures {
+    player: readonly [Texture, Texture];
+    chaser: readonly [Texture, Texture];
+    smallFire: Texture;
+    largeFire: Texture;
+}
+
+interface FireVisual {
+    small: Sprite;
+    large: Sprite;
+}
+
 interface ExplosionEffect {
     sprite: Sprite;
     startedAt: number;
 }
 
+const DAMAGE_TINTS = [0xffffff, 0xf0e7dd, 0xe0c7b0, 0xc59b79] as const;
+
+function getDamageStage(health: number, maxHealth: number): DamageStage {
+    if (maxHealth <= 0) return 0;
+
+    const ratio = Math.max(0, Math.min(1, health / maxHealth));
+
+    if (ratio <= 0.25) return 3;
+    if (ratio <= 0.5) return 2;
+    if (ratio <= 0.75) return 1;
+
+    return 0;
+}
+
 export class PixiGameRenderer implements GameRenderer {
     private readonly playerSprite: Sprite;
+    private readonly playerBaseTexture: Texture;
+
     private readonly islandVisual: Container;
     private readonly projectileLayer: Container;
     private readonly enemyLayer: Container;
@@ -24,21 +52,22 @@ export class PixiGameRenderer implements GameRenderer {
     private readonly chaserTexture: Texture;
     private readonly shooterTexture: Texture;
     private readonly explosionTexture: Texture;
+    private readonly damageTextures: DamageAssetTextures;
     private readonly config: GameplayConfig;
 
     private readonly projectileGraphics = new Map<number, Graphics>();
-
     private readonly enemySprites = new Map<number, Sprite>();
 
     private readonly playerHealthBar = new Graphics();
-
     private readonly enemyHealthBars = new Map<number, Graphics>();
 
     private readonly previousEnemyHealth = new Map<number, number>();
-
     private readonly enemyFlashUntil = new Map<number, number>();
 
     private readonly explosions: ExplosionEffect[] = [];
+
+    private playerFire: FireVisual | null = null;
+    private readonly enemyFire = new Map<number, FireVisual>();
 
     private previousPlayerHealth: number | null = null;
     private playerFlashUntil = 0;
@@ -52,8 +81,11 @@ export class PixiGameRenderer implements GameRenderer {
         shooterTexture: Texture,
         explosionTexture: Texture,
         config: GameplayConfig,
+        damageTextures: DamageAssetTextures,
     ) {
         this.playerSprite = playerSprite;
+        this.playerBaseTexture = playerSprite.texture;
+
         this.islandVisual = islandVisual;
         this.projectileLayer = projectileLayer;
         this.enemyLayer = enemyLayer;
@@ -61,6 +93,7 @@ export class PixiGameRenderer implements GameRenderer {
         this.chaserTexture = chaserTexture;
         this.shooterTexture = shooterTexture;
         this.explosionTexture = explosionTexture;
+        this.damageTextures = damageTextures;
         this.config = config;
 
         this.enemyLayer.addChild(this.playerHealthBar);
@@ -96,14 +129,34 @@ export class PixiGameRenderer implements GameRenderer {
 
         this.previousPlayerHealth = player.health;
 
-        this.playerSprite.position.set(player.x, player.y);
+        const sprite = this.playerSprite;
 
-        this.playerSprite.rotation = player.rotation + SHIP_ROTATION_OFFSET;
+        sprite.position.set(player.x, player.y);
+        sprite.rotation = player.rotation + SHIP_ROTATION_OFFSET;
 
-        this.playerSprite.tint =
-            now < this.playerFlashUntil ? 0xff7777 : 0xffffff;
+        const stage = getDamageStage(
+            player.health,
+            this.config.playerMaxHealth,
+        );
 
-        this.playerSprite.alpha = player.health > 0 ? 1 : 0.35;
+        this.applyShipTexture(
+            sprite,
+            stage,
+            this.playerBaseTexture,
+            this.damageTextures.player,
+        );
+
+        this.playerFire = this.updateFire(
+            sprite,
+            stage,
+            snapshot.elapsedSeconds,
+            this.playerFire,
+        );
+
+        sprite.tint =
+            now < this.playerFlashUntil ? 0xff7777 : DAMAGE_TINTS[stage];
+
+        sprite.alpha = player.health > 0 ? 1 : 0.35;
 
         this.drawHealthBar(
             this.playerHealthBar,
@@ -132,24 +185,20 @@ export class PixiGameRenderer implements GameRenderer {
 
                 graphic = new Graphics();
 
-                // Outer translucent wake.
                 graphic.moveTo(0, 48).lineTo(0, 7).stroke({
                     color: trailColor,
                     width: 6,
                     alpha: 0.28,
                 });
 
-                // Bright core of the cannonball trail.
                 graphic.moveTo(0, 34).lineTo(0, 7).stroke({
                     color: trailColor,
                     width: 2.5,
                     alpha: 0.9,
                 });
 
-                // Dark cannonball silhouette.
                 graphic.circle(0, 0, 7).fill(ballColor);
 
-                // Specular highlight.
                 graphic.circle(-2, -2, 2.5).fill({
                     color: 0xf5f7f4,
                     alpha: 0.9,
@@ -161,14 +210,11 @@ export class PixiGameRenderer implements GameRenderer {
             }
 
             graphic.position.set(projectile.x, projectile.y);
-
             graphic.rotation = projectile.rotation;
         }
 
         for (const [id, graphic] of this.projectileGraphics) {
-            if (activeIds.has(id)) {
-                continue;
-            }
+            if (activeIds.has(id)) continue;
 
             this.projectileLayer.removeChild(graphic);
             graphic.destroy();
@@ -182,19 +228,19 @@ export class PixiGameRenderer implements GameRenderer {
         for (const enemy of snapshot.enemies) {
             activeIds.add(enemy.id);
 
+            const isChaser = enemy.type === "chaser";
+
+            const baseTexture = isChaser
+                ? this.chaserTexture
+                : this.shooterTexture;
+
             let sprite = this.enemySprites.get(enemy.id);
 
             if (!sprite) {
-                const texture =
-                    enemy.type === "chaser"
-                        ? this.chaserTexture
-                        : this.shooterTexture;
-
-                sprite = new Sprite(texture);
+                sprite = new Sprite(baseTexture);
                 sprite.anchor.set(0.5);
 
                 this.enemySprites.set(enemy.id, sprite);
-
                 this.enemyLayer.addChild(sprite);
             }
 
@@ -206,14 +252,39 @@ export class PixiGameRenderer implements GameRenderer {
 
             this.previousEnemyHealth.set(enemy.id, enemy.health);
 
+            sprite.position.set(enemy.x, enemy.y);
+            sprite.rotation = enemy.rotation + SHIP_ROTATION_OFFSET;
+
+            const maxHealth = isChaser
+                ? this.config.chaserMaxHealth
+                : this.config.shooterMaxHealth;
+
+            const stage = getDamageStage(enemy.health, maxHealth);
+
+            this.applyShipTexture(
+                sprite,
+                stage,
+                baseTexture,
+                isChaser ? this.damageTextures.chaser : null,
+            );
+
+            const fire = this.updateFire(
+                sprite,
+                stage,
+                snapshot.elapsedSeconds,
+                this.enemyFire.get(enemy.id) ?? null,
+            );
+
+            if (fire) {
+                this.enemyFire.set(enemy.id, fire);
+            } else {
+                this.enemyFire.delete(enemy.id);
+            }
+
             sprite.tint =
                 now < (this.enemyFlashUntil.get(enemy.id) ?? 0)
                     ? 0xffbbbb
-                    : 0xffffff;
-
-            sprite.position.set(enemy.x, enemy.y);
-
-            sprite.rotation = enemy.rotation + SHIP_ROTATION_OFFSET;
+                    : DAMAGE_TINTS[stage];
 
             let healthBar = this.enemyHealthBars.get(enemy.id);
 
@@ -230,28 +301,32 @@ export class PixiGameRenderer implements GameRenderer {
                 enemy.x,
                 enemy.y - 44,
                 enemy.health,
-                enemy.type === "chaser"
-                    ? this.config.chaserMaxHealth
-                    : this.config.shooterMaxHealth,
+                maxHealth,
             );
         }
 
+        // Destroy all visual resources belonging to dead enemies.
         for (const [id, sprite] of this.enemySprites) {
-            if (activeIds.has(id)) {
-                continue;
-            }
+            if (activeIds.has(id)) continue;
 
             this.spawnExplosion(sprite.x, sprite.y, now);
 
+            const fire = this.enemyFire.get(id);
+
+            if (fire) {
+                this.destroyFire(sprite, fire);
+                this.enemyFire.delete(id);
+            }
+
             this.enemyLayer.removeChild(sprite);
             sprite.destroy();
+
             this.enemySprites.delete(id);
 
             const healthBar = this.enemyHealthBars.get(id);
 
             if (healthBar) {
                 this.enemyLayer.removeChild(healthBar);
-
                 healthBar.destroy();
                 this.enemyHealthBars.delete(id);
             }
@@ -259,6 +334,98 @@ export class PixiGameRenderer implements GameRenderer {
             this.previousEnemyHealth.delete(id);
             this.enemyFlashUntil.delete(id);
         }
+    }
+
+    /**
+     * Swap between the original supplied ship sprites.
+     * All versions preserve the same dimensions and anchor.
+     */
+    private applyShipTexture(
+        sprite: Sprite,
+        stage: DamageStage,
+        base: Texture,
+        variants: readonly [Texture, Texture] | null,
+    ): void {
+        const nextTexture = variants
+            ? stage >= 2
+                ? variants[1]
+                : stage === 1
+                  ? variants[0]
+                  : base
+            : base;
+
+        if (sprite.texture !== nextTexture) {
+            sprite.texture = nextTexture;
+        }
+    }
+
+    /**
+     * Use the supplied fire PNGs instead of procedural Graphics.
+     * Each fire sprite is created only when damage reaches stage 2.
+     */
+    private updateFire(
+        ship: Sprite,
+        stage: DamageStage,
+        elapsedSeconds: number,
+        current: FireVisual | null,
+    ): FireVisual | null {
+        if (stage < 2) {
+            if (current) {
+                this.destroyFire(ship, current);
+            }
+
+            return null;
+        }
+
+        let visual = current;
+
+        if (!visual) {
+            const small = new Sprite(this.damageTextures.smallFire);
+
+            const large = new Sprite(this.damageTextures.largeFire);
+
+            small.anchor.set(0.5, 0.85);
+            large.anchor.set(0.5, 0.85);
+
+            // Positions relative to the ship center.
+            small.position.set(-12, -7);
+            large.position.set(12, 10);
+
+            ship.addChild(small, large);
+
+            visual = { small, large };
+        }
+
+        // Light fire from 50% HP; two flames below 25%.
+        visual.small.visible = true;
+        visual.large.visible = stage >= 3;
+
+        // Cancel parent rotation so flames stay upright,
+        // while their positions still follow the ship.
+        visual.small.rotation = -ship.rotation;
+        visual.large.rotation = -ship.rotation;
+
+        // Simulation time freezes during pause.
+        const smallPulse = Math.sin(elapsedSeconds * 8);
+
+        const largePulse = Math.sin(elapsedSeconds * 6.5 + 1.2);
+
+        visual.small.scale.set(0.9 + smallPulse * 0.06);
+
+        visual.large.scale.set(1 + largePulse * 0.08);
+
+        visual.small.alpha = 0.88 + smallPulse * 0.1;
+
+        visual.large.alpha = 0.87 + largePulse * 0.1;
+
+        return visual;
+    }
+
+    private destroyFire(ship: Sprite, visual: FireVisual): void {
+        ship.removeChild(visual.small, visual.large);
+
+        visual.small.destroy();
+        visual.large.destroy();
     }
 
     private drawHealthBar(
@@ -327,6 +494,7 @@ export class PixiGameRenderer implements GameRenderer {
                 this.enemyLayer.removeChild(effect.sprite);
 
                 effect.sprite.destroy();
+
                 this.explosions.splice(i, 1);
                 continue;
             }
@@ -341,6 +509,14 @@ export class PixiGameRenderer implements GameRenderer {
         this.previousPlayerHealth = null;
         this.playerFlashUntil = 0;
 
+        if (this.playerFire) {
+            this.destroyFire(this.playerSprite, this.playerFire);
+
+            this.playerFire = null;
+        }
+
+        this.playerSprite.texture = this.playerBaseTexture;
+
         this.playerSprite.tint = 0xffffff;
         this.playerSprite.alpha = 1;
 
@@ -348,18 +524,24 @@ export class PixiGameRenderer implements GameRenderer {
 
         for (const graphic of this.projectileGraphics.values()) {
             this.projectileLayer.removeChild(graphic);
-
             graphic.destroy();
         }
 
         this.projectileGraphics.clear();
 
-        for (const sprite of this.enemySprites.values()) {
+        for (const [id, sprite] of this.enemySprites) {
+            const fire = this.enemyFire.get(id);
+
+            if (fire) {
+                this.destroyFire(sprite, fire);
+            }
+
             this.enemyLayer.removeChild(sprite);
             sprite.destroy();
         }
 
         this.enemySprites.clear();
+        this.enemyFire.clear();
 
         for (const bar of this.enemyHealthBars.values()) {
             this.enemyLayer.removeChild(bar);
@@ -375,6 +557,7 @@ export class PixiGameRenderer implements GameRenderer {
         }
 
         this.explosions.length = 0;
+
         this.previousEnemyHealth.clear();
         this.enemyFlashUntil.clear();
     }

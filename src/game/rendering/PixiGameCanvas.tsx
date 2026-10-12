@@ -31,6 +31,15 @@ import explosionUrl from "../../../assets/png/default/effects/explosion_1.png";
 import pauseIconUrl from "../../../assets/png/default/ui/controls/icon_pause.png";
 import homeIconUrl from "../../../assets/png/default/ui/controls/icon_home.png";
 
+import playerWornUrl from "../../../assets/png/default/ships/ship_8.png";
+import playerTornUrl from "../../../assets/png/default/ships/ship_14.png";
+
+import chaserWornUrl from "../../../assets/png/default/ships/ship_9.png";
+import chaserTornUrl from "../../../assets/png/default/ships/ship_15.png";
+
+import smallFireUrl from "../../../assets/png/default/effects/fire_2.png";
+import largeFireUrl from "../../../assets/png/default/effects/fire_1.png";
+
 import "../ui/gameplay-ui.css";
 
 interface PixiGameCanvasProps {
@@ -171,6 +180,12 @@ export function PixiGameCanvas({
                 chaserShipUrl,
                 shooterShipUrl,
                 explosionUrl,
+                playerWornUrl,
+                playerTornUrl,
+                chaserWornUrl,
+                chaserTornUrl,
+                smallFireUrl,
+                largeFireUrl,
             ];
 
             await Assets.load(requiredAssets, {
@@ -246,11 +261,23 @@ export function PixiGameCanvas({
                 chaserTexture,
                 shooterTexture,
                 explosionTexture,
+                playerWornTexture,
+                playerTornTexture,
+                chaserWornTexture,
+                chaserTornTexture,
+                smallFireTexture,
+                largeFireTexture,
             ] = await Promise.all([
                 Assets.load(playerShipUrl),
                 Assets.load(chaserShipUrl),
                 Assets.load(shooterShipUrl),
                 Assets.load(explosionUrl),
+                Assets.load(playerWornUrl),
+                Assets.load(playerTornUrl),
+                Assets.load(chaserWornUrl),
+                Assets.load(chaserTornUrl),
+                Assets.load(smallFireUrl),
+                Assets.load(largeFireUrl),
             ]);
 
             if (disposed) {
@@ -274,6 +301,12 @@ export function PixiGameCanvas({
                 shooterTexture,
                 explosionTexture,
                 config,
+                {
+                    player: [playerWornTexture, playerTornTexture],
+                    chaser: [chaserWornTexture, chaserTornTexture],
+                    smallFire: smallFireTexture,
+                    largeFire: largeFireTexture,
+                },
             );
 
             const keyboard = new KeyboardInput();
