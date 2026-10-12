@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/compare/v0.12.0...v1.0.0) (2026-10-12)
+
+
+### Features
+
+* prepare Pirate Battle v1.0.0 production delivery ([#43](https://github.com/LuizMoreira-DevOps/game-developer-challenge/issues/43)) ([b260d86](https://github.com/LuizMoreira-DevOps/game-developer-challenge/commit/b260d86ddc8abcf613e7320517c416a90f793318))
+
 ## [0.12.0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/compare/v0.11.0...v0.12.0) (2026-10-11)
 
 
