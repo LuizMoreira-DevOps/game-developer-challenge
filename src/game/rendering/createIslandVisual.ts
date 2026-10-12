@@ -23,7 +23,7 @@ import tile57Url from "../../../assets/png/default/tiles/tile_57.png";
 const TILE_SIZE = 64;
 const ISLAND_SCALE = 0.75;
 
-const islandTileUrls = [
+export const islandTileUrls = [
     [tile6Url, tile7Url, tile8Url, tile9Url],
     [tile22Url, tile23Url, tile24Url, tile25Url],
     [tile38Url, tile39Url, tile40Url, tile41Url],

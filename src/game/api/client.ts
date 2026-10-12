@@ -10,7 +10,7 @@ import type {
 } from "./contracts";
 
 export const apiClient = axios.create({
-    baseURL: "/api",
+    baseURL: `${import.meta.env.BASE_URL}api/`,
     timeout: 6000,
     headers: {
         Accept: "application/json",

@@ -56,7 +56,7 @@ function handleRepositoryError(error: unknown): Response {
 
 export const handlers = [
     // GET /api/ranking
-    http.get("/api/ranking", async ({ request }) => {
+    http.get("*/api/ranking", async ({ request }) => {
         const url = new URL(request.url);
 
         const matchDurationSeconds = integerParam(url, "matchDurationSeconds");
@@ -119,7 +119,7 @@ export const handlers = [
     }),
 
     // GET /api/matches
-    http.get("/api/matches", async ({ request }) => {
+    http.get("*/api/matches", async ({ request }) => {
         const url = new URL(request.url);
 
         const playerId = url.searchParams.get("playerId");
@@ -167,7 +167,7 @@ export const handlers = [
     }),
 
     // POST /api/matches
-    http.post("/api/matches", async ({ request }) => {
+    http.post("*/api/matches", async ({ request }) => {
         let body: unknown;
 
         try {
