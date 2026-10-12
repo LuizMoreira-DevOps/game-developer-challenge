@@ -138,8 +138,8 @@ The Options screen exposes:
 
 | Option               |    Default |  Supported range |
 | -------------------- | ---------: | ---------------: |
-| Match duration       | 90 seconds | 60â€“180 seconds |
-| Enemy spawn interval |  5 seconds |   1â€“30 seconds |
+| Match duration       | 90 seconds | 60 à 180 seconds |
+| Enemy spawn interval |  5 seconds |   1 à 30 seconds |
 
 Values must be whole numbers within the supported ranges.
 
