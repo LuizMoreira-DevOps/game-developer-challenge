@@ -46,8 +46,29 @@ jobs:
             - name: Install Playwright Chromium
               run: npx playwright install --with-deps chromium
 
-            - name: Run end-to-end smoke tests
+            - name: Run end-to-end tests
               run: npm run test:e2e
+
+            # Preserve the HTML report even when tests fail.
+            - name: Upload Playwright HTML report
+              if: ${{ always() }}
+              uses: actions/upload-artifact@v4
+              with:
+                  name: playwright-report-${{ github.run_id }}-${{ github.run_attempt }}
+                  path: playwright-report/
+                  if-no-files-found: warn
+                  retention-days: 14
+
+            # Preserve traces, screenshots and failure diagnostics.
+            # On a clean run, trace files may not exist.
+            - name: Upload Playwright test results
+              if: ${{ always() }}
+              uses: actions/upload-artifact@v4
+              with:
+                  name: playwright-test-results-${{ github.run_id }}-${{ github.run_attempt }}
+                  path: test-results/
+                  if-no-files-found: warn
+                  retention-days: 14
 
             - name: Smoke test production preview
               shell: bash
