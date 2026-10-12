@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/compare/v1.0.0...v1.0.0) (2026-10-12)
+
+
+### Features
+
+* refresh Pirate Battle art and UI ([#47](https://github.com/LuizMoreira-DevOps/game-developer-challenge/issues/47)) ([2130c0f](https://github.com/LuizMoreira-DevOps/game-developer-challenge/commit/2130c0f0218aeee3199ecd42e87f5dc57e560aa5))
+
 ## [1.0.0](https://github.com/LuizMoreira-DevOps/game-developer-challenge/compare/v0.12.0...v1.0.0) (2026-10-12)
 
 
