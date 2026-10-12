@@ -167,8 +167,8 @@ Default configuration:
 
 The Options screen accepts:
 
-- Match duration: 60–180 seconds.
-- Enemy spawn interval: 1–30 seconds.
+- Match duration: 60â€“180 seconds.
+- Enemy spawn interval: 1â€“30 seconds.
 
 Saved options apply to newly created matches.
 
@@ -231,22 +231,46 @@ location.reload();
 
 Available scenarios:
 
-| Scenario                | Behavior                                    |
-| ----------------------- | ------------------------------------------- |
-| success                 | Standard responses                          |
-| empty                   | Empty ranking/history lists                 |
-| latency                 | Fixed 700 ms delay                          |
-| out-of-order            | 900 ms for page 1; 60 ms for other pages    |
-| timeout                 | 7000 ms delay                               |
-| network-error           | Network failure                             |
-| http-400                | HTTP 400                                    |
-| http-500                | HTTP 500                                    |
-| ranking-error           | HTTP 500 on Ranking queries                 |
-| history-error           | HTTP 500 on History queries                 |
-| offline                 | Network failure                             |
-| post-timeout-after-save | Match persists, but POST response times out |
+| Scenario                | Behavior                                           |
+| ----------------------- | -------------------------------------------------- |
+| success                 | Standard responses                                 |
+| empty                   | Empty ranking/history lists                        |
+| latency                 | Fixed 700 ms delay                                 |
+| `latency-variable`      | Deterministic 200â€“1,200 ms delays; fixed seed 42 |
+| out-of-order            | 900 ms for page 1; 60 ms for other pages           |
+| timeout                 | 7000 ms delay                                      |
+| network-error           | Network failure                                    |
+| http-400                | HTTP 400                                           |
+| http-500                | HTTP 500                                           |
+| ranking-error           | HTTP 500 on Ranking queries                        |
+| history-error           | HTTP 500 on History queries                        |
+| offline                 | Network failure                                    |
+| post-timeout-after-save | Match persists, but POST response times out        |
 
 Axios currently has a 6000 ms timeout.
+
+### Variable latency (fixed seed 42)
+
+Select `latency-variable` and reload to restart the deterministic sequence:
+
+```javascript
+localStorage.setItem("pirate-battle:mock-scenario:v1", "latency-variable");
+location.reload();
+```
+
+A 32-bit LCG assigns integer delays from 200 through 1,200 ms, starting with
+452, 288, 777 and 422 ms for seed `42`. The seed is fixed in
+`src/mocks/networkScenarios.ts` (`VARIABLE_LATENCY_SEED`); no `Math.random()` is
+used. Each valid ranking, history or submission request consumes one value
+synchronously before awaiting its delay. Successful mock responses expose
+`X-Mock-Delay-Ms` and `X-Mock-Latency-Seed` for reproducible test assertions.
+
+Reload, or call the module's `setNetworkScenario` / `resetNetworkScenario`, to
+restart the sequence. Direct localStorage changes should be followed by reload.
+Replay the same ordered requests, awaiting each response before sending the
+next, in a clean browser context without pending submissions or background
+refetches. Concurrent request arrival order and wall-clock scheduling are not
+guaranteed by the seed; use `out-of-order` for its explicit page-order scenario.
 
 ### Switching scenarios
 
@@ -509,7 +533,7 @@ On Linux CI, install browser system dependencies.
 - The mock API is browser-local and not globally shared.
 - The 60 FPS performance target has not been demonstrated by the historical measurements.
 - New performance figures are required after significant rendering changes.
-- Mock latency scenarios are currently fixed rather than randomized.
+- Variable mock latency uses a fixed seed (42) for replayable request sequences.
 - Mobile orientation, focus management and some accessibility details need continued verification.
 - Asset reuse outside the original challenge context requires confirmation of applicable rights.
 
@@ -520,3 +544,35 @@ On Linux CI, install browser system dependencies.
 - [PERFORMANCE.md](PERFORMANCE.md): measured performance.
 - [README.CHALLENGE.md](../README.CHALLENGE.md): original challenge.
 - [AGENTS.md](../AGENTS.md): project conventions.
+
+## Comparing profiling loads
+
+The three-minute profile uses `SPAWN_INTERVAL_SECONDS`, defaulting to **5**.
+It accepts integers from 1 through 30 and records the interval in the JSON
+attachment and filename. Compare normal and increased load using PowerShell:
+
+```powershell
+npm run build
+
+$env:SPAWN_INTERVAL_SECONDS = "5"
+npx playwright test --config=playwright.performance.config.ts three-minute.profile.ts --reporter=line --output=test-results-performance-5s
+
+$env:SPAWN_INTERVAL_SECONDS = "1"
+npx playwright test --config=playwright.performance.config.ts three-minute.profile.ts --reporter=line --output=test-results-performance-1s
+
+Remove-Item Env:SPAWN_INTERVAL_SECONDS
+```
+
+Separate output directories preserve both runs. Compare FPS, p95 frame time,
+entity/projectile counts and heap samples only on the same browser/machine.
+
+## Enemy spawn distribution
+
+`GameplayConfig.enemySpawnDistribution` accepts `"uniform"` (default) and
+`"perimeter"`. Uniform keeps the original sampling unchanged. Perimeter uses
+rejection sampling within a border band whose width is 10% of the smaller
+usable arena dimension (after subtracting the enemy radius at both ends).
+Both enforce arena limits, island clearance and the same minimum player
+distance. After 100 unsuccessful attempts they return no enemy rather than
+spawning in an invalid position. Configure this in code; the menu still exposes
+only match duration and spawn interval.

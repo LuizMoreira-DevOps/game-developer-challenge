@@ -226,3 +226,102 @@ test("mobile touch controls respond after viewport resize", async ({
 
     await expect(forward).toHaveAttribute("data-pressed", "false");
 });
+
+test("pause dialog focuses Resume and traps Tab in both directions", async ({
+    page,
+}) => {
+    await openGame(page);
+    const pause = page.getByRole("button", { name: "Pause", exact: true });
+    await pause.focus();
+    await page.keyboard.press("Enter");
+
+    const dialog = page.getByRole("dialog", { name: "Paused", exact: true });
+    const resume = dialog.getByRole("button", { name: "Resume", exact: true });
+    const menu = dialog.getByRole("button", { name: "Main Menu", exact: true });
+
+    await expect(dialog).toHaveAttribute("aria-modal", "true");
+    await expect(resume).toBeFocused();
+
+    for (let cycle = 0; cycle < 2; cycle += 1) {
+        await page.keyboard.press("Tab");
+        await expect(menu).toBeFocused();
+        await page.keyboard.press("Tab");
+        await expect(resume).toBeFocused();
+        await page.keyboard.press("Shift+Tab");
+        await expect(menu).toBeFocused();
+        await page.keyboard.press("Shift+Tab");
+        await expect(resume).toBeFocused();
+    }
+
+    const controls = page.getByTestId("touch-controls").getByRole("button");
+    for (const control of await controls.all()) {
+        await expect(control).toBeDisabled();
+        await control.evaluate((element) =>
+            (element as HTMLButtonElement).focus(),
+        );
+        await expect(resume).toBeFocused();
+    }
+
+    await resume.click();
+    await expect(dialog).toHaveCount(0);
+    await expect(pause).toBeFocused();
+    await expect(page.getByRole("status", { name: "Match status" })).toHaveText(
+        "Playing",
+    );
+
+    // A second opening must also capture and restore focus correctly.
+    await page.keyboard.press("Enter");
+    await expect(resume).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(pause).toBeFocused();
+});
+
+test("leaving the pause dialog focuses Play in the main menu", async ({
+    page,
+}) => {
+    await openGame(page);
+    await page.getByRole("button", { name: "Pause", exact: true }).click();
+    await page
+        .getByRole("dialog", { name: "Paused", exact: true })
+        .getByRole("button", { name: "Main Menu", exact: true })
+        .click();
+    await expect(
+        page.getByRole("button", { name: "Play", exact: true }),
+    ).toBeFocused();
+    await expect(page.getByTestId("game-canvas-container")).toHaveCount(0);
+});
+
+test("Escape resumes the same match even when Main Menu has focus", async ({
+    page,
+}) => {
+    await openGame(page);
+    const activeMatch = await page.evaluate(() =>
+        localStorage.getItem("pirate-battle:active-match:v1"),
+    );
+    expect(activeMatch).not.toBeNull();
+
+    const pause = page.getByRole("button", { name: "Pause", exact: true });
+    await pause.click();
+    const dialog = page.getByRole("dialog", { name: "Paused", exact: true });
+    await expect(dialog.getByRole("button", { name: "Resume" })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(
+        dialog.getByRole("button", { name: "Main Menu" }),
+    ).toBeFocused();
+    await page.keyboard.press("Escape");
+
+    await expect(dialog).toHaveCount(0);
+    await expect(pause).toBeFocused();
+    await expect(page.getByRole("status", { name: "Match status" })).toHaveText(
+        "Playing",
+    );
+    await expect(
+        page.getByTestId("game-canvas-container").locator("canvas"),
+    ).toBeVisible();
+    const persistence = await page.evaluate(() => ({
+        active: localStorage.getItem("pirate-battle:active-match:v1"),
+        abandoned: localStorage.getItem("pirate-battle:last-abandoned:v1"),
+    }));
+    expect(persistence.active).toBe(activeMatch);
+    expect(persistence.abandoned).toBeNull();
+});

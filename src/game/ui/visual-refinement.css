@@ -756,3 +756,72 @@
         transition-duration: 0.01ms !important;
     }
 }
+
+/* AA text backgrounds must not depend on the current health-bar texture. */
+.hud-health-frame output,
+.hud-max-health {
+    background: #102b40;
+    color: #fff9ea;
+    text-shadow: none;
+    line-height: 1.2;
+}
+
+/* The pressed gold sprite is too dark behind its dark label. */
+.application-main
+    button:not(.touch-control):not(.hud-round):not(.round-button):active:not(
+        :disabled
+    ) {
+    background: #ffe19b;
+    color: #40280e;
+    text-shadow: none;
+}
+
+/* Dark backing keeps the light focus ring readable over game textures. */
+.application-main button:focus-visible,
+.application-main input:focus-visible {
+    outline: 3px solid #fff19e;
+    outline-offset: 3px;
+    box-shadow: 0 0 0 7px #102b40;
+}
+
+/* Keep the decorative frame and give its text a predictable surface. */
+.application-main--game .pause-panel {
+    background: #102b40;
+    border-image-slice: 40 32;
+    color: #ffe6aa;
+}
+
+.application-main--game .pause-panel p {
+    color: #e4d8c4;
+}
+
+/* Short landscape: include the frame and focus rings in the available height. */
+@media (max-height: 450px) and (orientation: landscape) {
+    .application-main--game .pause-overlay {
+        padding: 10px;
+    }
+
+    .application-main--game .pause-panel {
+        min-height: 0;
+        max-height: calc(100% - 4px);
+        width: min(440px, 94%);
+        padding: 12px 24px;
+        border-width: 16px;
+        border-image-width: 16px;
+        gap: 8px;
+    }
+
+    .application-main--game .pause-panel h2 {
+        font-size: 1.5rem;
+        margin: 0;
+    }
+
+    .application-main--game .pause-panel p {
+        margin: 0 0 4px;
+    }
+
+    .application-main--game .pause-panel button {
+        min-height: 48px;
+        padding-block: 8px;
+    }
+}
