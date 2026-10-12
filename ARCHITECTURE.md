@@ -2,118 +2,106 @@
 
 ## Overview
 
-Pirate Battle separates application UI, game simulation, runtime coordination, and rendering.
+Pirate Battle is a single-player naval shooter built with React,
+TypeScript, PixiJS, Axios, TanStack Query and MSW.
 
-The current runtime flow is:
+React owns screens, forms and semantic controls. PixiJS renders
+the arena and combat objects. GameSimulation owns gameplay rules.
 
-```text
-React
-  |
-  v
-PixiGameCanvas
-  |
-  v
-GameRuntime
-  |         |
-  v         v
-Simulation  Renderer
-  |         |
-  +-----> Snapshot
-             |
-             v
-           PixiJS
-```
+## Runtime flow
 
-React is responsible for mounting and unmounting the game surface.
-Continuous game updates do not use React state.
+React App
+  -> PixiGameCanvas
+  -> GameRuntime
+  -> GameSimulation + CompositeGameInput
+  -> GameSimulationSnapshot
+  -> PixiGameRenderer (PixiJS)
 
-## Game Simulation
+The simulation advances using delta time in seconds.
+React does not render once per game frame.
 
-`GameSimulation` contains game-state rules that do not depend on React or PixiJS.
+## Gameplay
 
-The simulation receives delta time in seconds:
-`update(deltaSeconds)`
+GameSimulation coordinates player movement, weapons, collision
+resolution, enemies, projectiles, health, score and match duration.
 
-This allows simulation behavior to depend on elapsed time instead of frame count.
+CombatSystem resolves projectile impacts and damage.
+EnemySystem provides Chaser and Shooter behavior.
 
-The current simulation manages:
+GameplayConfig centralizes balance values. Each match receives
+an immutable configuration snapshot. Options allow durations
+from 60 to 180 seconds and spawn intervals from 1 to 30 seconds.
 
-- elapsed match time
-- running state
-- paused state
-- match duration
+## Rendering and resources
 
-Future gameplay rules will build on this simulation boundary.
+PixiGameCanvas owns PixiJS initialization and teardown.
+PixiGameRenderer maintains visual objects corresponding to the
+current simulation snapshot.
 
-## Game Runtime
+Assets are loaded before gameplay. Asset failures allow retry
+or return to the menu.
 
-`GameRuntime` coordinates simulation updates and rendering.
+Unmounting stops input and simulation, removes ticker callbacks
+and canvas resources, and destroys owned render objects.
+React Strict Mode initialization and cleanup are supported.
 
-For each update:
+The canvas adjusts to its container and device pixel ratio.
 
-1. The simulation receives delta time.
-2. The simulation state is updated.
-3. A snapshot is produced.
-4. The renderer receives the snapshot.
+## Input
 
-The runtime does not contain PixiJS-specific rendering logic.
+KeyboardInput and TouchInput feed CompositeGameInput.
+Movement and weapons can be activated simultaneously.
 
-## Rendering
+Manual pause, loss of focus and tab visibility suspend gameplay.
+Resuming requires player interaction.
 
-`PixiGameRenderer` implements the renderer contract used by `GameRuntime`.
+## Local persistence
 
-PixiJS owns:
+Match options, completed results and abandoned match metadata
+are stored locally. Reloading or leaving active gameplay abandons
+that session without recording a completed match.
 
-- the game canvas
-- the stage
-- continuously rendered game objects
+## Ranking and history
 
-React does not re-render for every game frame.
+Axios communicates with REST-shaped mock endpoints.
+TanStack Query handles remote-state caching and synchronization.
 
-The PixiJS ticker provides frame timing, which is converted from milliseconds to seconds before being passed to the runtime.
+MSW intercepts requests in development and published builds.
+Handlers share typed contracts and fixtures with the application.
 
-## React Integration
+Ranking is filtered by match configuration and has deterministic
+sorting and pagination.
 
-`PixiGameCanvas` is the lifecycle boundary between React and the game runtime.
+Completed match submissions use the match ID as an idempotency
+key. Pending submissions and confirmation receipts support
+retries, refresh and recovery without duplicate records.
 
-React mounts the container.
+Records are stored locally per browser, not in a shared server.
+This is intentional because the challenge requires mock APIs.
 
-PixiJS creates and owns the canvas inside that container.
+## Network scenarios
 
-The component handles asynchronous PixiJS initialization safely under React Strict Mode.
+src/mocks/networkScenarios.ts defines reproducible success,
+empty, latency, timeout, HTTP error, connection failure and
+out-of-order response scenarios.
 
-Cleanup removes ticker callbacks, stops the runtime, removes the canvas, and destroys PixiJS children.
+## Testing and profiling
 
-## Responsive Canvas
+Playwright tests cover gameplay, lifecycle, API recovery,
+desktop/mobile layout and visual regression.
 
-The PixiJS application resizes to its container.
+Production profiling collects average FPS, p95 frame time
+and peak entity counts.
 
-Rendering resolution uses the browser device pixel ratio together with automatic density handling.
+See docs/SETUP.md and docs/PERFORMANCE.md.
 
-This keeps the displayed canvas responsive while maintaining an appropriate backing-buffer resolution.
+## Known limitations
 
-## Gameplay Configuration
+The ArrowLeft + ArrowUp + Space combination remains tracked
+in issue #37. The F key works as an alternative.
 
-Gameplay values are centralized through the typed `GameplayConfig` contract.
+60 FPS is the performance target, not a measured achievement.
+Further profiling and optimization are planned after deployment.
 
-The default configuration currently contains:
-
-- match duration
-- enemy spawn interval
-
-Future matches will use a configuration snapshot so active gameplay does not change when persisted options are modified.
-
-## Testing
-
-The current test coverage verifies:
-
-- simulation updates using delta time
-- paused simulation does not advance
-- runtime forwards simulation snapshots to the renderer
-- the application renders
-- the PixiJS canvas mounts
-- only one canvas exists
-- device pixel ratio is respected
-- the canvas responds to viewport changes
-
-Playwright executes the suite using Chromium desktop and mobile projects.
+Challenge-provided assets are used under the terms applicable
+to their original distribution.

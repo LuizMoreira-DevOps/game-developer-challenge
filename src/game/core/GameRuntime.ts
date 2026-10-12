@@ -26,14 +26,17 @@ export class GameRuntime {
         this.simulation.start();
     }
 
-    public update(deltaSeconds: number): void {
+    public update(deltaSeconds: number): GameSimulationSnapshot {
         const movementInput = this.input.getMovementInput();
-
         const weaponInput = this.input.getWeaponInput();
 
         this.simulation.update(deltaSeconds, movementInput, weaponInput);
 
-        this.renderer.render(this.simulation.getSnapshot());
+        const snapshot = this.simulation.getSnapshot();
+
+        this.renderer.render(snapshot);
+
+        return snapshot;
     }
 
     public pause(): void {

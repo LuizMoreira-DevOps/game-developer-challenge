@@ -3,6 +3,7 @@ import { Application, Assets, Container, Graphics, Sprite } from "pixi.js";
 
 import type { GameplayConfig } from "../config/gameplayConfig";
 import { GameRuntime } from "../core/GameRuntime";
+import { FrameMetrics } from "../diagnostics/FrameMetrics";
 import {
     GameSimulation,
     type GameSimulationSnapshot,
@@ -12,7 +13,9 @@ import { KeyboardInput } from "../input/KeyboardInput";
 import { TouchInput } from "../input/TouchInput";
 import { TouchControls } from "../ui/TouchControls";
 import { PixiGameRenderer } from "./PixiGameRenderer";
-import { createIslandVisual } from "./createIslandVisual";
+import { createIslandVisual, islandTileUrls } from "./createIslandVisual";
+
+import { getBrowserPerformanceDiagnostics } from "../diagnostics/BrowserPerformanceDiagnostics";
 
 import "../ui/gameplay-ui.css";
 
@@ -34,6 +37,11 @@ type HudState = {
     endReason: "time" | "destroyed" | null;
 };
 
+type AssetLoadState = {
+    phase: "loading" | "ready" | "error";
+    percent: number;
+};
+
 function toHud(snapshot: GameSimulationSnapshot): HudState {
     return {
         health: snapshot.player.health,
@@ -53,6 +61,12 @@ export function PixiGameCanvas({
     const containerRef = useRef<HTMLDivElement>(null);
     const touchInputRef = useRef<TouchInput | null>(null);
     const onCompleteRef = useRef(onComplete);
+
+    const [loadState, setLoadState] = useState<AssetLoadState>({
+        phase: "loading",
+        percent: 0,
+    });
+    const [loadAttempt, setLoadAttempt] = useState(0);
 
     const [hud, setHud] = useState<HudState>({
         health: config.playerMaxHealth,
@@ -113,6 +127,51 @@ export function PixiGameCanvas({
                 return;
             }
 
+            let assetLoadFailed = false;
+
+            await Assets.load(
+                [...islandTileUrls.flat(), playerShipUrl, enemyShipUrl],
+                {
+                    strategy: "throw",
+
+                    onProgress: (progress) => {
+                        // Other downloads can finish after the first failure.
+                        if (disposed || assetLoadFailed) {
+                            return;
+                        }
+
+                        setLoadState((current) => {
+                            // Never let progress overwrite an error.
+                            if (current.phase === "error") {
+                                return current;
+                            }
+
+                            return {
+                                phase: "loading",
+                                percent: Math.round(progress * 100),
+                            };
+                        });
+                    },
+
+                    onError: (error, asset) => {
+                        // Lock progress synchronously on the first failure.
+                        assetLoadFailed = true;
+
+                        const url =
+                            typeof asset === "string" ? asset : asset.src;
+
+                        console.error(
+                            `Failed to load game asset: ${url}`,
+                            error,
+                        );
+                    },
+                },
+            );
+
+            if (disposed) {
+                return;
+            }
+
             const arena = new Graphics()
                 .rect(0, 0, config.arenaWidth, config.arenaHeight)
                 .fill("#0b3d5c");
@@ -122,6 +181,7 @@ export function PixiGameCanvas({
             const islandVisual = await createIslandVisual();
 
             if (disposed) {
+                islandVisual.destroy({ children: true });
                 return;
             }
 
@@ -171,6 +231,8 @@ export function PixiGameCanvas({
             keyboard.start();
 
             const runtime = new GameRuntime(simulation, renderer, input);
+            const frameMetrics = new FrameMetrics();
+            const browserProfile = getBrowserPerformanceDiagnostics();
 
             runtime.start();
 
@@ -241,9 +303,37 @@ export function PixiGameCanvas({
             );
 
             const update = () => {
-                runtime.update(app.ticker.deltaMS / 1000);
+                const snapshot = runtime.update(app.ticker.deltaMS / 1000);
 
-                const snapshot = simulation.getSnapshot();
+                const frameTimestamp = performance.now();
+
+                browserProfile?.recordFrame(frameTimestamp, {
+                    isRunning: snapshot.isRunning,
+                    isPaused: snapshot.isPaused,
+                    playerX: snapshot.player.x,
+                    playerY: snapshot.player.y,
+                    playerRotation: snapshot.player.rotation,
+                    enemyCount: snapshot.enemies.length,
+                    projectileCount: snapshot.projectiles.length,
+                });
+
+                const playerProjectileCount = snapshot.projectiles.filter(
+                    (projectile) => projectile.owner === "player",
+                ).length;
+
+                if (
+                    target.dataset.playerProjectileCount !==
+                    String(playerProjectileCount)
+                ) {
+                    target.dataset.playerProjectileCount = String(
+                        playerProjectileCount,
+                    );
+                }
+
+                frameMetrics.recordFrame(
+                    performance.now(),
+                    1 + snapshot.enemies.length + snapshot.projectiles.length,
+                );
 
                 syncHud(snapshot);
 
@@ -286,7 +376,11 @@ export function PixiGameCanvas({
                 app.ticker.remove(update);
 
                 keyboard.stop();
+                touch.clear();
                 runtime.stop();
+                renderer.reset();
+
+                browserProfile?.pause();
 
                 window.removeEventListener("blur", pauseMatch);
 
@@ -303,10 +397,29 @@ export function PixiGameCanvas({
             };
 
             target.appendChild(app.canvas);
+
+            if (!disposed) {
+                setLoadState({ phase: "ready", percent: 100 });
+            }
         }
 
         void mount(container).catch((error: unknown) => {
+            if (disposed) {
+                return;
+            }
+
             console.error("Failed to initialize Pirate Battle:", error);
+
+            cleanupRuntime?.();
+
+            if (initialized) {
+                destroyApplication();
+            }
+
+            setLoadState({
+                phase: "error",
+                percent: 0,
+            });
         });
 
         return () => {
@@ -317,7 +430,7 @@ export function PixiGameCanvas({
                 destroyApplication();
             }
         };
-    }, [config]);
+    }, [config, loadAttempt]);
 
     const touchDisabled = !hud.isRunning || hud.isPaused;
 
@@ -390,6 +503,36 @@ export function PixiGameCanvas({
                 / → Rotate right · Space / F Front cannon · Q Left broadside · E
                 Right broadside
             </p>
+
+            {loadState.phase === "loading" && (
+                <p
+                    role="progressbar"
+                    aria-label="Loading game assets"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={loadState.percent}
+                >
+                    Loading game assets: {loadState.percent}%
+                </p>
+            )}
+
+            {loadState.phase === "error" && (
+                <div role="alert">
+                    <p>Game assets could not be loaded.</p>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setLoadState({ phase: "loading", percent: 0 });
+                            setLoadAttempt((attempt) => attempt + 1);
+                        }}
+                    >
+                        Retry Loading
+                    </button>
+                    <button type="button" onClick={onExit}>
+                        Return to Menu
+                    </button>
+                </div>
+            )}
 
             <div
                 ref={containerRef}
