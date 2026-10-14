@@ -4,9 +4,11 @@ import type { GameplayConfig } from "../config/gameplayConfig";
 import type { GameRenderer } from "../core/GameRuntime";
 import type { GameSimulationSnapshot } from "../core/GameSimulation";
 
+import { ProjectileRenderer } from "./ProjectileRenderer";
+import { ExplosionRenderer } from "./ExplosionRenderer";
+
 const SHIP_ROTATION_OFFSET = Math.PI;
 const HIT_FLASH_MS = 150;
-const EXPLOSION_DURATION_MS = 520;
 
 type DamageStage = 0 | 1 | 2 | 3;
 
@@ -20,11 +22,6 @@ interface DamageAssetTextures {
 interface FireVisual {
     small: Sprite;
     large: Sprite;
-}
-
-interface ExplosionEffect {
-    sprite: Sprite;
-    startedAt: number;
 }
 
 const DAMAGE_TINTS = [0xffffff, 0xf0e7dd, 0xe0c7b0, 0xc59b79] as const;
@@ -46,16 +43,16 @@ export class PixiGameRenderer implements GameRenderer {
     private readonly playerBaseTexture: Texture;
 
     private readonly islandVisual: Container;
-    private readonly projectileLayer: Container;
     private readonly enemyLayer: Container;
 
     private readonly chaserTexture: Texture;
     private readonly shooterTexture: Texture;
-    private readonly explosionTexture: Texture;
     private readonly damageTextures: DamageAssetTextures;
     private readonly config: GameplayConfig;
 
-    private readonly projectileGraphics = new Map<number, Graphics>();
+    private readonly projectileRenderer: ProjectileRenderer;
+    private readonly explosionRenderer: ExplosionRenderer;
+
     private readonly enemySprites = new Map<number, Sprite>();
 
     private readonly playerHealthBar = new Graphics();
@@ -63,8 +60,6 @@ export class PixiGameRenderer implements GameRenderer {
 
     private readonly previousEnemyHealth = new Map<number, number>();
     private readonly enemyFlashUntil = new Map<number, number>();
-
-    private readonly explosions: ExplosionEffect[] = [];
 
     private playerFire: FireVisual | null = null;
     private readonly enemyFire = new Map<number, FireVisual>();
@@ -87,12 +82,17 @@ export class PixiGameRenderer implements GameRenderer {
         this.playerBaseTexture = playerSprite.texture;
 
         this.islandVisual = islandVisual;
-        this.projectileLayer = projectileLayer;
         this.enemyLayer = enemyLayer;
+
+        this.projectileRenderer = new ProjectileRenderer(projectileLayer);
+
+        this.explosionRenderer = new ExplosionRenderer(
+            enemyLayer,
+            explosionTexture,
+        );
 
         this.chaserTexture = chaserTexture;
         this.shooterTexture = shooterTexture;
-        this.explosionTexture = explosionTexture;
         this.damageTextures = damageTextures;
         this.config = config;
 
@@ -104,9 +104,11 @@ export class PixiGameRenderer implements GameRenderer {
 
         this.renderIsland(snapshot);
         this.renderPlayer(snapshot, now);
-        this.renderProjectiles(snapshot);
+
+        this.projectileRenderer.render(snapshot.projectiles);
+
         this.renderEnemies(snapshot, now);
-        this.renderExplosions(now);
+        this.explosionRenderer.render(now);
     }
 
     private renderIsland(snapshot: GameSimulationSnapshot): void {
@@ -123,7 +125,7 @@ export class PixiGameRenderer implements GameRenderer {
             this.playerFlashUntil = now + HIT_FLASH_MS;
 
             if (player.health === 0 && this.previousPlayerHealth > 0) {
-                this.spawnExplosion(player.x, player.y, now);
+                this.explosionRenderer.spawn(player.x, player.y, now);
             }
         }
 
@@ -168,60 +170,6 @@ export class PixiGameRenderer implements GameRenderer {
         );
     }
 
-    private renderProjectiles(snapshot: GameSimulationSnapshot): void {
-        const activeIds = new Set<number>();
-
-        for (const projectile of snapshot.projectiles) {
-            activeIds.add(projectile.id);
-
-            let graphic = this.projectileGraphics.get(projectile.id);
-
-            if (!graphic) {
-                const isPlayer = projectile.owner === "player";
-
-                const trailColor = isPlayer ? 0xd9f9ff : 0xffd2a0;
-
-                const ballColor = isPlayer ? 0x18242e : 0x9c3027;
-
-                graphic = new Graphics();
-
-                graphic.moveTo(0, 48).lineTo(0, 7).stroke({
-                    color: trailColor,
-                    width: 6,
-                    alpha: 0.28,
-                });
-
-                graphic.moveTo(0, 34).lineTo(0, 7).stroke({
-                    color: trailColor,
-                    width: 2.5,
-                    alpha: 0.9,
-                });
-
-                graphic.circle(0, 0, 7).fill(ballColor);
-
-                graphic.circle(-2, -2, 2.5).fill({
-                    color: 0xf5f7f4,
-                    alpha: 0.9,
-                });
-
-                this.projectileGraphics.set(projectile.id, graphic);
-
-                this.projectileLayer.addChild(graphic);
-            }
-
-            graphic.position.set(projectile.x, projectile.y);
-            graphic.rotation = projectile.rotation;
-        }
-
-        for (const [id, graphic] of this.projectileGraphics) {
-            if (activeIds.has(id)) continue;
-
-            this.projectileLayer.removeChild(graphic);
-            graphic.destroy();
-            this.projectileGraphics.delete(id);
-        }
-    }
-
     private renderEnemies(snapshot: GameSimulationSnapshot, now: number): void {
         const activeIds = new Set<number>();
 
@@ -241,6 +189,7 @@ export class PixiGameRenderer implements GameRenderer {
                 sprite.anchor.set(0.5);
 
                 this.enemySprites.set(enemy.id, sprite);
+
                 this.enemyLayer.addChild(sprite);
             }
 
@@ -253,6 +202,7 @@ export class PixiGameRenderer implements GameRenderer {
             this.previousEnemyHealth.set(enemy.id, enemy.health);
 
             sprite.position.set(enemy.x, enemy.y);
+
             sprite.rotation = enemy.rotation + SHIP_ROTATION_OFFSET;
 
             const maxHealth = isChaser
@@ -305,11 +255,13 @@ export class PixiGameRenderer implements GameRenderer {
             );
         }
 
-        // Destroy all visual resources belonging to dead enemies.
+        // Destroy visual resources belonging to dead enemies.
         for (const [id, sprite] of this.enemySprites) {
-            if (activeIds.has(id)) continue;
+            if (activeIds.has(id)) {
+                continue;
+            }
 
-            this.spawnExplosion(sprite.x, sprite.y, now);
+            this.explosionRenderer.spawn(sprite.x, sprite.y, now);
 
             const fire = this.enemyFire.get(id);
 
@@ -327,6 +279,7 @@ export class PixiGameRenderer implements GameRenderer {
 
             if (healthBar) {
                 this.enemyLayer.removeChild(healthBar);
+
                 healthBar.destroy();
                 this.enemyHealthBars.delete(id);
             }
@@ -360,7 +313,7 @@ export class PixiGameRenderer implements GameRenderer {
     }
 
     /**
-     * Use the supplied fire PNGs instead of procedural Graphics.
+     * Use supplied fire PNGs instead of procedural Graphics.
      * Each fire sprite is created only when damage reaches stage 2.
      */
     private updateFire(
@@ -393,15 +346,17 @@ export class PixiGameRenderer implements GameRenderer {
 
             ship.addChild(small, large);
 
-            visual = { small, large };
+            visual = {
+                small,
+                large,
+            };
         }
 
         // Light fire from 50% HP; two flames below 25%.
         visual.small.visible = true;
         visual.large.visible = stage >= 3;
 
-        // Cancel parent rotation so flames stay upright,
-        // while their positions still follow the ship.
+        // Keep flames upright while following the ship.
         visual.small.rotation = -ship.rotation;
         visual.large.rotation = -ship.rotation;
 
@@ -469,42 +424,6 @@ export class PixiGameRenderer implements GameRenderer {
         graphic.position.set(x, y);
     }
 
-    private spawnExplosion(x: number, y: number, now: number): void {
-        const sprite = new Sprite(this.explosionTexture);
-
-        sprite.anchor.set(0.5);
-        sprite.position.set(x, y);
-        sprite.scale.set(0.6);
-
-        this.enemyLayer.addChild(sprite);
-
-        this.explosions.push({
-            sprite,
-            startedAt: now,
-        });
-    }
-
-    private renderExplosions(now: number): void {
-        for (let i = this.explosions.length - 1; i >= 0; i--) {
-            const effect = this.explosions[i];
-
-            const progress = (now - effect.startedAt) / EXPLOSION_DURATION_MS;
-
-            if (progress >= 1) {
-                this.enemyLayer.removeChild(effect.sprite);
-
-                effect.sprite.destroy();
-
-                this.explosions.splice(i, 1);
-                continue;
-            }
-
-            effect.sprite.scale.set(0.95 + progress * 1.15);
-
-            effect.sprite.alpha = Math.max(0, 1 - progress * progress);
-        }
-    }
-
     public reset(): void {
         this.previousPlayerHealth = null;
         this.playerFlashUntil = 0;
@@ -522,13 +441,10 @@ export class PixiGameRenderer implements GameRenderer {
 
         this.playerHealthBar.clear();
 
-        for (const graphic of this.projectileGraphics.values()) {
-            this.projectileLayer.removeChild(graphic);
-            graphic.destroy();
-        }
+        // Clean up projectile visuals.
+        this.projectileRenderer.reset();
 
-        this.projectileGraphics.clear();
-
+        // Clean up enemy sprites and attached fire.
         for (const [id, sprite] of this.enemySprites) {
             const fire = this.enemyFire.get(id);
 
@@ -543,6 +459,7 @@ export class PixiGameRenderer implements GameRenderer {
         this.enemySprites.clear();
         this.enemyFire.clear();
 
+        // Clean up enemy health bars.
         for (const bar of this.enemyHealthBars.values()) {
             this.enemyLayer.removeChild(bar);
             bar.destroy();
@@ -550,13 +467,8 @@ export class PixiGameRenderer implements GameRenderer {
 
         this.enemyHealthBars.clear();
 
-        for (const effect of this.explosions) {
-            this.enemyLayer.removeChild(effect.sprite);
-
-            effect.sprite.destroy();
-        }
-
-        this.explosions.length = 0;
+        // Clean up active explosions.
+        this.explosionRenderer.reset();
 
         this.previousEnemyHealth.clear();
         this.enemyFlashUntil.clear();
